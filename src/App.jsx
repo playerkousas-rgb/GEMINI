@@ -2,6 +2,8 @@ import { Fragment } from "react";
 import * as React from "react";
 import { validateApps, isSafeToolUrl } from "./catalog.js";
 import LoginDialog from "./components/LoginDialog.jsx";
+import ReportDialog from "./components/ReportDialog.jsx";
+import InsightsPanel from "./components/InsightsPanel.jsx";
 const EMOJIS = [
     "\uD83D\uDEE0️",
     "\uD83C\uDFA8",
@@ -37,6 +39,11 @@ export default function App({
   onLogin,
   onLogout,
   onNotice,
+  onReport,
+  onTrackClick,
+  onLoadStats,
+  onLoadReports,
+  onDeleteReport,
 }) {
   let [query, setQuery] = React.useState(""),
     [category, setCategory] = React.useState("全部"),
@@ -67,8 +74,10 @@ export default function App({
     editorRef = React.useRef(null),
     searchRef = React.useRef(null),
     heroRef = React.useRef(null);
+  const [reporting, setReporting] = React.useState(null);
   React.useEffect(() => {
-    if (!canEdit) setIsEditing(false);
+    // A valid stored PIN restores the editor; losing it drops back to the public view.
+    setIsEditing(canEdit);
   }, [canEdit]);
   const hasUnsavedInput = Boolean(form.title || form.desc || form.url);
   React.useEffect(() => {
@@ -84,12 +93,13 @@ export default function App({
     setShowLogin(false);
     history.replaceState(null, "", "/");
   };
-  const enterEditor = async (email, password) => {
-    await onLogin(email, password);
+  const enterEditor = async (password) => {
+    await onLogin(password);
     setIsEditing(true);
     setShowLogin(false);
     history.replaceState(null, "", "/edit");
   };
+  const openReport = (w) => setReporting(w);
   (React.useEffect(() => {
     let w = (T) => {
       let A = (T.clientX / window.innerWidth - 0.5) * 2,
@@ -444,13 +454,7 @@ export default function App({
                 </span>
               </div>
               {!isEditing ? (
-                <button
-                  onClick={() => setShowLogin(true)}
-                  className="btn-press h-[38px] px-4 rounded-full bg-white/90 border border-white text-[13px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.10)] hover:bg-white transition-all flex items-center gap-1.5"
-                >
-                  <span>{"\uD83D\uDD10"}</span>
-                  {" EDIT · 管理入口"}
-                </button>
+                <span className="hidden sm:inline-flex" aria-hidden="true" />
               ) : (
                 <Fragment>
                   <span className="hidden sm:inline-flex h-[36px] px-3 rounded-full bg-[#141413] text-white text-[12px] items-center gap-2 shadow-lg">
@@ -484,11 +488,6 @@ export default function App({
                 : "工具清單由雲端讀取；只有管理員可以修改。"}
             </span>
           </div>
-          {!isEditing && (
-            <button className="quiet-button" onClick={() => setShowLogin(true)}>
-              EDIT ↗
-            </button>
-          )}
         </section>
         {notice && (
           <div
@@ -840,6 +839,16 @@ export default function App({
             </div>
           </div>
         )}
+        {isEditing && mode === "cloud" && (
+          <div className="max-w-[1320px] mx-auto w-full px-5 sm:px-8 pt-7 animate-slideDown">
+            <InsightsPanel
+              apps={apps}
+              onLoadStats={onLoadStats}
+              onLoadReports={onLoadReports}
+              onDeleteReport={onDeleteReport}
+            />
+          </div>
+        )}
         <main className="max-w-[1320px] mx-auto w-full px-5 sm:px-8 py-10 flex-1">
           <div
             ref={heroRef}
@@ -1098,6 +1107,7 @@ export default function App({
                         href={w.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => onTrackClick?.(w.id)}
                         className="btn-press w-8 h-8 rounded-full bg-[#141413] text-white flex items-center justify-center text-[12px] shadow-[0_6px_16px_rgba(0,0,0,0.16)] group-hover:rotate-[-12deg] group-hover:scale-110 transition-all duration-500"
                         aria-label="開啟工具"
                       >
@@ -1109,6 +1119,7 @@ export default function App({
                     href={w.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => onTrackClick?.(w.id)}
                     className="mt-5 block group/title relative z-[1]"
                   >
                     <h3 className="text-[18px] font-bold leading-[1.2] tracking-tight group-hover/title:underline decoration-[1.5px] underline-offset-[6px] decoration-[#141413]/20">
@@ -1122,17 +1133,29 @@ export default function App({
                     <span className="text-[11px] mono text-[var(--text-2)] truncate max-w-[160px] bg-white/70 px-2 py-1 rounded-full border border-white">
                       {w.url.replace("https://", "")}
                     </span>
-                    <a
-                      href={w.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-press text-[12px] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141413] text-white shadow-md hover:gap-2 hover:shadow-lg transition-all"
-                    >
-                      {"開啟 "}
-                      <span className="text-[14px] group-hover:translate-x-0.5 transition-transform">
-                        {"→"}
-                      </span>
-                    </a>
+                    <div className="flex items-center gap-2">
+                      {!isEditing && mode === "cloud" && (
+                        <button
+                          type="button"
+                          className="report-link"
+                          onClick={() => openReport(w)}
+                        >
+                          回報
+                        </button>
+                      )}
+                      <a
+                        href={w.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => onTrackClick?.(w.id)}
+                        className="btn-press text-[12px] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141413] text-white shadow-md hover:gap-2 hover:shadow-lg transition-all"
+                      >
+                        {"開啟 "}
+                        <span className="text-[14px] group-hover:translate-x-0.5 transition-transform">
+                          {"→"}
+                        </span>
+                      </a>
+                    </div>
                   </div>
                   <div className="absolute left-6 right-6 bottom-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D6F264]/0 to-transparent group-hover:via-[#D6F264]/60 transition-all duration-700" />
                 </div>
@@ -1238,11 +1261,17 @@ export default function App({
               <span className="w-8 h-8 rounded-full bg-[#141413] text-white grid place-items-center font-bold text-[12px]">
                 {"N"}
               </span>
-              <span>
+              <button
+                type="button"
+                className="footer-copyright"
+                onClick={() => {
+                  if (!isEditing) setShowLogin(true);
+                }}
+              >
                 {"© "}
                 {new Date().getFullYear()}
-                {" NoScout Tools Hub"}
-              </span>
+                {" Scout System"}
+              </button>
               <span className="w-1 h-1 rounded-full bg-[var(--border-soft)]" />
               <span>{"一格一Link · 集中你的工具"}</span>
               <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#D6F264]/30 text-[#2E5520] text-[10px] font-medium border border-[#D6F264]/40">
@@ -1272,6 +1301,13 @@ export default function App({
       </div>
       {showLogin && (
         <LoginDialog mode={mode} onLogin={enterEditor} onClose={closeLogin} />
+      )}
+      {reporting && (
+        <ReportDialog
+          tool={reporting}
+          onSubmit={onReport}
+          onClose={() => setReporting(null)}
+        />
       )}
     </div>
   );

@@ -393,7 +393,9 @@
   font-size: 12px;
   font-weight: 600;
 }
-.dialog-label input {
+.dialog-label input,
+.dialog-label select,
+.dialog-label textarea {
   display: block;
   border: 1px solid #d9dece;
   border-radius: 12px;
@@ -402,6 +404,10 @@
   width: 100%;
   margin-top: 6px;
   font-size: 15px;
+  font-family: inherit;
+}
+.dialog-label textarea {
+  resize: vertical;
 }
 .error-text {
   color: #a32c1d !important;
@@ -501,5 +507,114 @@ textarea:focus-visible {
   }
   .login-dialog input {
     font-size: 16px;
+  }
+}
+
+/* Inconspicuous admin entrance: plain-looking copyright text in the footer. */
+.footer-copyright {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.footer-copyright:hover {
+  opacity: 0.75;
+}
+
+/* Quiet per-tool report link. */
+.report-link {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 11px;
+  color: var(--text-3);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.report-link:hover {
+  color: var(--text-2);
+}
+
+/* Admin insights: click stats + report inbox. */
+.insights-panel {
+  margin-bottom: 6px;
+}
+.insights-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.insights-summary {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.insights-num {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.insights-label {
+  font-size: 11px;
+  color: var(--text-2);
+}
+.insights-rows {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.insights-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.insights-row-title {
+  width: 150px;
+  flex-shrink: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.insights-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(20, 20, 19, 0.07);
+  overflow: hidden;
+}
+.insights-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #141413, #7aae3a);
+  min-width: 2px;
+}
+.insights-count {
+  width: 52px;
+  text-align: right;
+  font-size: 12px;
+}
+.report-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-soft);
+}
+@media (max-width: 600px) {
+  .insights-row-title {
+    width: 96px;
   }
 }

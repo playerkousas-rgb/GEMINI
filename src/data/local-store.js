@@ -87,5 +87,16 @@ export function createLocalStore(
     subscribe() {
       return () => {};
     },
+    async trackClick() {},
+    async submitReport() {
+      throw new Error("本機試用未連接雲端，未能送出回報。");
+    },
+    async loadStats() {
+      return { totals: [], daily: [], grand_total: 0, today: 0 };
+    },
+    async loadReports() {
+      return { reports: [], total: 0 };
+    },
+    async deleteReport() {},
   };
 }
