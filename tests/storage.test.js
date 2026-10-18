@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createLocalStore, DRAFT_KEY } from "../src/data/local-store.js";
-import { createCloudStore } from "../src/data/cloud-store.js";
+import {
+  createCloudStore,
+  PIN_STORAGE_KEY,
+} from "../src/data/cloud-store.js";
 const tool = {
   id: "one",
   title: "工具",
@@ -16,6 +19,7 @@ function memory() {
   return {
     getItem: (key) => data.get(key) ?? null,
     setItem: (key, value) => data.set(key, value),
+    removeItem: (key) => data.delete(key),
   };
 }
 
@@ -58,45 +62,129 @@ test("corrupted drafts and failed persistence never report success", async () =>
   }));
   await assert.rejects(blocked.save([tool], 0), /本機儲存失敗/);
 });
-test("cloud writes carry revision and visibility; errors do not fall back to local", async () => {
+test("cloud writes carry revision, PIN and visibility; errors do not fall back to local", async () => {
   const calls = [];
-  const store = createCloudStore({
-    rpc: async (name, params) => {
-      calls.push({ name, params });
-      return { data: { apps: params.p_apps, revision: 2 }, error: null };
+  const store = createCloudStore(
+    {
+      rpc: async (name, params) => {
+        calls.push({ name, params });
+        return { data: { apps: params.p_apps, revision: 2 }, error: null };
+      },
     },
-  });
+    memory,
+  );
   assert.equal((await store.save([tool], 1)).revision, 2);
   assert.equal(calls[0].name, "save_gemini_catalog");
   assert.equal(calls[0].params.p_revision, 1);
-  const conflict = createCloudStore({
-    rpc: async () => ({ error: { message: "CATALOG_CONFLICT" } }),
-  });
+  assert.equal(calls[0].params.p_pin, null); // no stored PIN yet
+  const conflict = createCloudStore(
+    { rpc: async () => ({ error: { message: "CATALOG_CONFLICT" } }) },
+    memory,
+  );
   await assert.rejects(conflict.save([tool], 1), /另一個視窗/);
-  const offline = createCloudStore({
-    rpc: async () => ({ error: { message: "offline" } }),
-  });
+  const offline = createCloudStore(
+    { rpc: async () => ({ error: { message: "offline" } }) },
+    memory,
+  );
   await assert.rejects(offline.save([tool], 1), /沒有改用本機/);
 });
-test("authenticated non-admin is signed out and refused editing", async () => {
-  let signedOut = false;
-  const store = createCloudStore({
-    auth: {
-      signInWithPassword: async () => ({ error: null }),
-      signOut: async () => {
-        signedOut = true;
-        return {};
+test("shared PIN unlocks the editor; wrong PIN is refused and stored nowhere", async () => {
+  const storage = memory();
+  const client = {
+    rpc: async (name, params) => {
+      if (name === "get_gemini_catalog") {
+        const ok = params?.p_pin === "0728";
+        return {
+          data: {
+            apps: ok ? [tool] : [],
+            revision: 0,
+            can_edit: ok,
+          },
+          error: null,
+        };
+      }
+      if (name === "save_gemini_catalog") {
+        return {
+          data: { apps: [tool], revision: 1, can_edit: true },
+          error: null,
+        };
+      }
+      return { data: null, error: null };
+    },
+  };
+  const store = createCloudStore(client, () => storage);
+  await assert.rejects(store.signIn("9999"), /密碼不正確/);
+  assert.equal(storage.getItem(PIN_STORAGE_KEY), null);
+  await assert.rejects(store.signIn(""), /請輸入管理密碼/);
+  const snapshot = await store.signIn("0728");
+  assert.equal(snapshot.canEdit, true);
+  assert.equal(storage.getItem(PIN_STORAGE_KEY), "0728");
+  const calls = [];
+  const tracked = createCloudStore(
+    {
+      rpc: async (name, params) => {
+        calls.push({ name, params });
+        return {
+          data:
+            name === "save_gemini_catalog"
+              ? { apps: [tool], revision: 1, can_edit: true }
+              : null,
+          error: null,
+        };
       },
     },
-    rpc: async () => ({ data: { apps: [], revision: 0, can_edit: false } }),
-  });
-  await assert.rejects(
-    store.signIn("test@example.com", "test"),
-    /沒有.*管理權限/,
+    () => storage,
   );
-  assert.equal(signedOut, true);
+  await tracked.save([tool], 0);
+  assert.equal(calls[0].params.p_pin, "0728"); // stored PIN travels with writes
+  await store.signOut();
+  assert.equal(storage.getItem(PIN_STORAGE_KEY), null);
 });
-
+test("click tracking never blocks; reports surface honest errors", async () => {
+  const failing = createCloudStore(
+    { rpc: async () => ({ error: { message: "offline" } }) },
+    memory,
+  );
+  await failing.trackClick("one"); // fire-and-forget: must not throw
+  await assert.rejects(failing.submitReport("one", "工具", "壞了"), /雲端操作失敗/);
+  const limited = createCloudStore(
+    { rpc: async () => ({ error: { message: "RATE_LIMITED" } }) },
+    memory,
+  );
+  await assert.rejects(limited.submitReport("one", "工具", "x"), /今日回報/);
+  const calls = [];
+  const ok = createCloudStore(
+    {
+      rpc: async (name, params) => {
+        calls.push({ name, params });
+        return { data: { reports: [], total: 0 }, error: null };
+      },
+    },
+    () => storageWithPin(),
+  );
+  await ok.trackClick("one");
+  assert.equal(calls[0].name, "record_gemini_click");
+  await ok.submitReport("one", "工具", "壞了");
+  assert.equal(calls[1].name, "submit_gemini_report");
+  assert.equal(calls[1].params.p_message, "壞了");
+  assert.deepEqual(await ok.loadReports(), { reports: [], total: 0 });
+  function storageWithPin() {
+    const s = memory();
+    s.setItem(PIN_STORAGE_KEY, "0728");
+    return s;
+  }
+});
+test("local mode keeps engagement features honest without a cloud backend", async () => {
+  const store = createLocalStore(() => memory());
+  await store.trackClick("one"); // no-op
+  await assert.rejects(store.submitReport("one", "工具", "x"), /未連接雲端/);
+  assert.deepEqual(await store.loadStats(), {
+    totals: [],
+    daily: [],
+    grand_total: 0,
+    today: 0,
+  });
+});
 test("website defaults merge once without overwriting drafts or reviving deleted tools", async () => {
   const storage = memory();
   const old = createLocalStore(() => storage);

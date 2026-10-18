@@ -21,7 +21,7 @@ export default function Hub({ store, initialSnapshot }) {
         };
         current.current = safe;
         setSnapshot(safe);
-        setNotice({ type: "error", text: "已登出。請重新登入以管理工具。" });
+        setNotice({ type: "error", text: "已登出。請重新輸入管理密碼以管理工具。" });
       }),
     [store],
   );
@@ -53,20 +53,33 @@ export default function Hub({ store, initialSnapshot }) {
       setBusy(false);
     }
   }
-  async function login(email, password) {
-    const next = await store.signIn(email, password);
+  async function login(password) {
+    const next = await store.signIn(password);
     accept(next);
     setNotice(null);
   }
   async function logout() {
     try {
       await store.signOut();
+      accept({ ...current.current, canEdit: false });
+      setNotice(null);
       return true;
     } catch (error) {
       report(error.message);
       return false;
     }
   }
+  async function submitReport(toolId, toolTitle, message) {
+    await store.submitReport(toolId, toolTitle, message);
+    report("已收到你的回報，多謝幫忙！", "success");
+  }
+  const loadStats = useCallback(() => store.loadStats(), [store]);
+  const loadReports = useCallback(() => store.loadReports(), [store]);
+  async function deleteReport(id) {
+    await store.deleteReport(id);
+    report("已刪除該則回報。", "success");
+  }
+  const trackClick = useCallback((toolId) => store.trackClick(toolId), [store]);
   return (
     <App
       apps={snapshot.apps}
@@ -78,6 +91,11 @@ export default function Hub({ store, initialSnapshot }) {
       onLogin={login}
       onLogout={logout}
       onNotice={report}
+      onReport={submitReport}
+      onTrackClick={trackClick}
+      onLoadStats={loadStats}
+      onLoadReports={loadReports}
+      onDeleteReport={deleteReport}
     />
   );
 }

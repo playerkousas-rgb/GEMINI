@@ -2,7 +2,31 @@
 
 **一個統一的 Gemini Share Link 入口。** 使用者在首頁開啟工具；管理員在 EDIT 填寫名稱、介紹及分享網址，儲存後就產生方塊，不需要上載 Canvas HTML、不需要手動改 JSON，也不需要每次重新部署。
 
-保留原稿的米白／綠色、玻璃質感及方塊版面。使用 React + Vite，Vercel 部署；Supabase 連接程式及獨立資料表腳本已準備好，但**尚未連接或修改任何遠端 Supabase 專案**。
+保留原稿的米白／綠色、玻璃質感及方塊版面。使用 React + Vite，Vercel 部署；已連接 Supabase（與 APP STORE 共用同一專案，只使用 `gemini_hub_*` 表），提供管理密碼、點擊統計及訪客回報系統。
+
+**© Scout System**
+
+## 管理入口（不起眼設計）
+
+- 沒有顯眼的 EDIT 按鈕。管理入口有兩條路：**網址直接開 `/edit`**，或**撳頁尾「© 年份 Scout System」**。
+- 雲端模式只需輸入**管理密碼（出廠設定 `0728`）**，一個欄位就入到管理頁面；不需要電郵、不需要 Supabase 帳戶登入。
+- 密碼在資料庫的 RPC 內驗證，前端不會硬編碼密碼，也不放任何 secret / service_role key。
+- 這只是輕量保護（口令 `0728` 本身不是機密），用作擋住路人亂改清單及保護統計頁；不要放真正敏感的資料。要改密碼：在 Supabase SQL Editor 執行 `update public.gemini_hub_state set pin = '新密碼' where singleton;`
+- 關閉分頁後需重新輸入密碼（只存於當前分頁的 `sessionStorage`）。
+
+## 點擊統計及回報系統
+
+- **點擊統計**：訪客點擊任何工具方塊即以 fire-and-forget 記錄一次點擊（不會阻慢開 link）。資料以「每日合計」形式儲存，不會堆積海量原始記錄。管理頁顯示今日／累積點擊及每工具排行榜。
+- **回報系統**：訪客在工具方塊按「回報」，選類別＋補充（最多 300 字）。管理頁的回報收件箱可查看及刪除。回報設每日 20 則上限，並自動清理 90 日前的舊回報。
+- 統計及回報全部經 Supabase RPC 直連，**不經過 Vercel serverless**。
+
+## 瘦身機制（避免 Vercel 爆額度）
+
+- 全站是純靜態檔案；所有動態功能（清單、統計、回報）都由 Supabase 直連處理，Vercel 零 function invocation。
+- 點擊統計按日聚合、回報自動清理及限流，資料庫不會無限膨脹。
+- `supabase-js` 以動態載入（code splitting）；主檔 gzip 約 62KB，沒有外部字型、沒有圖片資產。
+- `vercel.json` 已設定長效快取（hashed assets `immutable`）及 HTML 不快取，重複訪問流量極低。
+- 建置只在 push / 合併時進行；環境變數改動後記得無需再改（已一次性設定）。
 
 ## 現在可以試甚麼？
 
@@ -35,19 +59,16 @@ npm run dev
 - 日後接上 Supabase，可在管理頁貼上此 JSON 匯入，或使用包含本機修改的完整備份。匯入會取代雲端清單，請先備份；不會自動向雲端寫入。
 - 已核對來源記錄，不代表已驗證各 Gemini 工具的登入權限或生成能力。
 
-## 完成 Supabase 接駁（下一步，一次性設定）
+## Supabase 接駁（已完成）
 
-**不是現在已完成的遠端設定。** 可使用獨立 Supabase 專案；若與 WEBSITE 共用專案，本程式只使用下列 `gemini_hub_*` 表及 RPC，不會改 WEBSITE 的 `apps`、`categories`、`pages`。
+已與 APP STORE 共用同一 Supabase 專案（`SCOUTAPPSTORE`）；本程式只使用下列 `gemini_hub_*` 表及 RPC，不會改 WEBSITE 的 `apps`、`categories`、`pages`、`site_visits`、`submissions`。
 
-1. 在 Supabase SQL Editor 執行 `migrations/001_gemini_hub.sql`。
-   - 建立 `gemini_hub_admins`（管理員白名單）及 `gemini_hub_state`（版本化清單）。
-   - 開啟 RLS，撤銷訪客及一般登入者的直接表格存取權。
-   - 任何訪客只可透過 `get_gemini_catalog` 讀取公開工具；隱藏工具不會傳到訪客瀏覽器。
-   - `save_gemini_catalog` 在資料庫檢查管理員權限、資料格式及版本，原子儲存整份清單。
-   - 可重跑腳本，不會清空原有 Gemini 清單。
-2. 在 Authentication 建立／選擇你的管理員帳戶，設定強密碼並確認電郵。
-3. 在 Table Editor 的 `gemini_hub_admins` 新增該 Auth 使用者的**真實 User UID**（`user_id` 欄位）。登入者必須在此白名單，才可管理 Gemini 入口。不要把 email 當 UUID 填入。
-4. 在 Vercel 設定兩個公開環境變數：
+1. `migrations/001_gemini_hub.sql`（已執行）：建立 `gemini_hub_state`（版本化清單＋PIN）、RLS 及讀寫 RPC。
+2. `migrations/002_gemini_pin_report_stats.sql`（已執行）：改用共享 PIN 管理制（取代 Auth 白名單，已移除 `gemini_hub_admins`），加建每日點擊合計表 `gemini_hub_clicks`、回報表 `gemini_hub_reports` 及相關 RPC。
+   - 訪客：`get_gemini_catalog`（只看公開工具）、`record_gemini_click`（點擊＋1）、`submit_gemini_report`（回報）。
+   - 管理（需正確 PIN）：`save_gemini_catalog`、`get_gemini_stats`、`get_gemini_reports`、`delete_gemini_report`。
+   - 兩份腳本均可重跑，不會清空原有資料。
+3. Vercel 環境變數（已設定，只放公開值）：
 
    | 名稱 | 內容 |
    |---|---|
@@ -55,40 +76,37 @@ npm run dev
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | publishable key（`sb_publishable_…`），或舊版 **anon** key |
 
    本機則複製 `.env.example` 為 `.env.local`，填入同樣兩項，重新啟動開發伺服器。
-5. 重新部署 Vercel。`VITE_*` 在建置時注入，變更設定必須重建。Preview 和 Production 的環境變數分開配置。
-6. 開 `/edit`，用管理員電郵及密碼登入。**沒有公開四位 PIN**，也不需要 `ADMIN_AUTH_PASSWORD` 或 service-role key。
-7. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式登入後匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
+4. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入管理頁、統計及回報收件箱。
+5. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
 
 ### 權限及儲存方式
 
-- 公開 URL 和 publishable/anon key 不是管理員憑證；權限由資料庫白名單和 RPC 檢查決定。
-- **絕不可在 `VITE_*`、GitHub 或前端程式放 secret key、service_role key、帳戶密碼或 Gemini API key。**
-- 登入使用 Supabase Auth，工作階段只存當前分頁的 `sessionStorage`。關閉分頁後需重新登入；原有分頁重新整理會保留 session，但仍須經管理權限檢查才可進入 EDIT。
-- 系統不提供公開註冊功能；建議在 Supabase 關閉不需要的註冊，開啟合適的 Auth 限流／防濫用設定。
+- 公開 URL 和 publishable/anon key 不是管理員憑證；管理權限由資料庫 RPC 內的 PIN 檢查決定。
+- **絕不可在 `VITE_*`、GitHub 或前端程式放 secret key、service_role key 或 Gemini API key。**
+- 管理密碼只存當前分頁的 `sessionStorage`。關閉分頁後需重新輸入；密碼本身只是輕量口令（出廠 `0728`），不是機密保險。
 - 儲存成功才更新方塊；失敗保留輸入及提示錯誤，不會假裝成功或偷偷改存本機。
-- 另一管理員／分頁已更改清單時，版本衝突會拒絕覆蓋。請先保留未儲存輸入，再重新載入。
+- 另一分頁已更改清單時，版本衝突會拒絕覆蓋。請先保留未儲存輸入，再重新載入。
 - 刪除、排序、公開／隱藏會立即儲存。訪客在**重新載入首頁**後看到最新清單；本版本沒有即時推播更新。
 - 單站上限 500 個工具。整份清單原子儲存，適合小型工具入口，不是大型多人內容管理系統。
-- 本機草稿和雲端資料分開。配置了一半、連線失敗或登入被拒時，**不會降級成本機並顯示發布成功**。
+- 本機草稿和雲端資料分開。配置了一半、連線失敗或驗證被拒時，**不會降級成本機並顯示發布成功**。
 
 ### 必須做的遠端驗收
 
 SQL 已在隔離 PostgreSQL（PGlite）測試，前端雲端流程亦以模擬 API 測試；這些**不能取代真實 Supabase／Vercel 驗收**：
 
 - 無痕訪客只能讀公開工具，無法讀取隱藏資料或直接寫表。
-- 錯誤密碼拒絕登入；一般 Auth 帳戶即使登入也沒有管理權。
+- 錯誤密碼被拒；正確密碼才見到隱藏工具及統計。
 - 管理員新增一條測試 Share Link；另一個無痕視窗重新整理後看到方塊。
 - 隱藏後，無痕訪客的 RPC 回應中也不應存在該資料；不是只靠 CSS 隱藏。
+- 訪客點擊工具後，管理頁統計數字上升；「回報」送出後出現在收件箱。
 - 兩個管理分頁同時編輯，後儲存的舊版本必須出現衝突提示。
 - 網絡失敗不能顯示已發布；恢復網絡可重試，登出後管理表單消失。
 
 ## GitHub → Vercel
 
-- 本工作分支固定為 `arena/15310772-gemini`；目前修改不代表已推送或部署。
+- 本工作分支固定為 `arena/68d92208-gemini`；合併 PR 到 `main` 後 Vercel 自動部署生產環境。
 - Vercel 匯入 `playerkousas-rgb/GEMINI`，Framework 選 **Vite**，Root Directory 為根目錄，Build Command `npm run build`，Output Directory `dist`。
-- 如以目前分支發布，Production Branch 設為 `arena/15310772-gemini`；如正式站使用 `main`，先從本工作分支建立 PR，合併後發布。
-- 無 Supabase 設定的部署仍只會提供明確標示的**本機試用**，不是已完成的公開雲端入口。
-- `vercel.json` 將 `/edit` 和 `/edit/` 對應首頁。沒有攔截其他網址的全站 catch-all rewrite。
+- `vercel.json` 將 `/edit` 和 `/edit/` 對應首頁，並為 hashed assets 加長效快取、HTML 設不快取（瘦身）。沒有攔截其他網址的全站 catch-all rewrite。
 
 ## 檔案結構
 
@@ -96,15 +114,18 @@ SQL 已在隔離 PostgreSQL（PGlite）測試，前端雲端流程亦以模擬 A
 index.html                       頁面入口、標題及描述
 src/main.jsx                     啟動、載入及啟動錯誤提示
 src/Hub.jsx                      儲存狀態、通知及資料快照
-src/App.jsx                      原設計、工具管理、搜尋及分類
-src/components/LoginDialog.jsx   可鍵盤操作的登入／試用對話框
+src/App.jsx                        原設計、工具管理、搜尋及分類
 src/catalog.js                   工具資料和安全網址驗證
 src/data/local-store.js          本機草稿（獨立儲存空間）
-src/data/cloud-store.js          Supabase 登入及清單 RPC
+src/data/cloud-store.js          Supabase PIN 驗證、清單／統計／回報 RPC
 src/data/store.js                根據環境設定選擇模式
+src/components/LoginDialog.jsx   可鍵盤操作的管理密碼／試用對話框
+src/components/ReportDialog.jsx  訪客回報對話框
+src/components/InsightsPanel.jsx 管理頁點擊統計及回報收件箱
 src/styles/theme.css             配色、玻璃效果、動畫及管理介面
 src/styles/utilities.css         從原稿保留的 Tailwind 編譯樣式
-migrations/001_gemini_hub.sql     獨立資料表、RLS、讀寫 RPC
+migrations/001_gemini_hub.sql     清單資料表、RLS、讀寫 RPC
+migrations/002_gemini_pin_report_stats.sql  PIN 制、點擊統計、回報系統
 .env.example                     公開環境設定範本，不含祕密
 tests/                           驗證、儲存及資料庫權限測試
 vercel.json                      Vercel 部署與 /edit 路由

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 
 export default function LoginDialog({ mode, onLogin, onClose }) {
   const dialog = useRef(null);
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -19,7 +18,7 @@ export default function LoginDialog({ mode, onLogin, onClose }) {
     setBusy(true);
     setError("");
     try {
-      await onLogin(email.trim(), password);
+      await onLogin(password);
     } catch (error) {
       setError(error.message);
       setBusy(false);
@@ -49,39 +48,26 @@ export default function LoginDialog({ mode, onLogin, onClose }) {
           </button>
         </div>
         <h2 id="login-title">
-          {mode === "local" ? "先試試你的工具入口" : "管理員登入"}
+          {mode === "local" ? "先試試你的工具入口" : "管理入口"}
         </h2>
         <p>
           {mode === "local"
             ? "Supabase 尚未連接。你可以先試填名稱、介紹及 Share Link，新增的方塊只儲存在這個瀏覽器，不會公開發布。"
-            : "登入後即可新增、修改及發布工具。只有獲授權的管理員可以更改清單。"}
+            : "輸入管理密碼即可新增、修改及發布工具，並查看點擊統計及回報。"}
         </p>
         {mode === "cloud" && (
-          <>
-            <label className="dialog-label">
-              電郵
-              <input
-                autoFocus
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={busy}
-              />
-            </label>
-            <label className="dialog-label">
-              密碼
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={busy}
-              />
-            </label>
-          </>
+          <label className="dialog-label">
+            密碼
+            <input
+              autoFocus
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={busy}
+            />
+          </label>
         )}
         {error && (
           <p className="error-text" role="alert">
@@ -93,12 +79,12 @@ export default function LoginDialog({ mode, onLogin, onClose }) {
             ? "正在登入…"
             : mode === "local"
               ? "進入本機試用 →"
-              : "登入管理入口 →"}
+              : "進入管理 →"}
         </button>
         <p className="dialog-note">
           {mode === "local"
-            ? "不需要 PIN。這不是管理員驗證，也不是雲端發布。"
-            : "使用 Supabase 帳戶密碼，不是 Gemini 或 GitHub 密碼。"}
+            ? "不需要密碼。這不是管理員驗證，也不是雲端發布。"
+            : "只是一個輕量管理密碼，用作保護統計及編輯功能。"}
         </p>
       </form>
     </dialog>
