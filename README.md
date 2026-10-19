@@ -16,14 +16,15 @@
 
 ## 點擊統計及回報系統
 
-- **點擊統計**：訪客點擊任何工具方塊即以 fire-and-forget 記錄一次點擊（不會阻慢開 link）。資料以「每日合計」形式儲存，不會堆積海量原始記錄。管理頁顯示今日／累積點擊及每工具排行榜。
+- **點擊統計**：訪客點擊任何工具方塊即以 fire-and-forget 記錄一次點擊（不會阻慢開 link）。資料按「工具＋日期」聚合，不儲存逐次事件；保留最近 365 日，管理頁顯示今日／近一年點擊及每工具排行榜。
 - **回報系統**：訪客在工具方塊按「回報」，選類別＋補充（最多 300 字）。管理頁的回報收件箱可查看及刪除。回報設每日 20 則上限，並自動清理 90 日前的舊回報。
+- **每日瘦身**：收到當日第一筆點擊或回報時，資料庫以原子鎖只執行一次清理；刪除 365 日前的點擊彙總及 90 日前的回報，不需排程服務或 Vercel function。
 - 統計及回報全部經 Supabase RPC 直連，**不經過 Vercel serverless**。
 
 ## 瘦身機制（避免 Vercel 爆額度）
 
 - 全站是純靜態檔案；所有動態功能（清單、統計、回報）都由 Supabase 直連處理，Vercel 零 function invocation。
-- 點擊統計按日聚合、回報自動清理及限流，資料庫不會無限膨脹。
+- 點擊統計按日聚合並保留 365 日、回報保留 90 日並每日限流；每日首筆互動觸發清理，避免表格無限膨脹。
 - `supabase-js` 以動態載入（code splitting）；主檔 gzip 約 62KB，沒有外部字型、沒有圖片資產。
 - `vercel.json` 已設定長效快取（hashed assets `immutable`）及 HTML 不快取，重複訪問流量極低。
 - 建置只在 push / 合併時進行；環境變數改動後記得無需再改（已一次性設定）。
@@ -68,7 +69,8 @@ npm run dev
    - 訪客：`get_gemini_catalog`（只看公開工具）、`record_gemini_click`（點擊＋1）、`submit_gemini_report`（回報）。
    - 管理（需正確 PIN）：`save_gemini_catalog`、`get_gemini_stats`、`get_gemini_reports`、`delete_gemini_report`。
    - 兩份腳本均可重跑，不會清空原有資料。
-3. Vercel 環境變數（已設定，只放公開值）：
+3. **新增**：在 Supabase SQL Editor 執行 `migrations/003_gemini_hub_retention.sql`，啟用每日自動瘦身（點擊保留 365 日、回報保留 90 日）。此 migration 可重跑；無需額外設定 Vercel 排程或 serverless function。
+4. Vercel 環境變數（已設定，只放公開值）：
 
    | 名稱 | 內容 |
    |---|---|
@@ -76,8 +78,8 @@ npm run dev
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | publishable key（`sb_publishable_…`），或舊版 **anon** key |
 
    本機則複製 `.env.example` 為 `.env.local`，填入同樣兩項，重新啟動開發伺服器。
-4. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入管理頁、統計及回報收件箱。
-5. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
+5. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入管理頁、統計及回報收件箱。
+6. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
 
 ### 權限及儲存方式
 
@@ -126,6 +128,7 @@ src/styles/theme.css             配色、玻璃效果、動畫及管理介面
 src/styles/utilities.css         從原稿保留的 Tailwind 編譯樣式
 migrations/001_gemini_hub.sql     清單資料表、RLS、讀寫 RPC
 migrations/002_gemini_pin_report_stats.sql  PIN 制、點擊統計、回報系統
+migrations/003_gemini_hub_retention.sql    每日瘦身及 365／90 日資料保留
 .env.example                     公開環境設定範本，不含祕密
 tests/                           驗證、儲存及資料庫權限測試
 vercel.json                      Vercel 部署與 /edit 路由

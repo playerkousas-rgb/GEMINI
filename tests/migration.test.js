@@ -24,6 +24,7 @@ async function setup() {
   for (const file of [
     "../migrations/001_gemini_hub.sql",
     "../migrations/002_gemini_pin_report_stats.sql",
+    "../migrations/003_gemini_hub_retention.sql",
   ]) {
     const sql = await readFile(new URL(file, import.meta.url), "utf8");
     await db.exec(sql);
@@ -98,6 +99,10 @@ test("PIN gate replaces auth whitelist: hidden records, validation, conflicts", 
 test("clicks aggregate per day instead of storing raw event rows", async () => {
   const db = await setup();
   try {
+    await db.query(
+      `insert into public.gemini_hub_clicks (tool_id, day, count)
+       values ('ancient', current_date - 400, 7), ('recent', current_date - 30, 2)`,
+    );
     await asAnon(db);
     await assert.rejects(
       db.query("select public.record_gemini_click($1)", [""]),
@@ -119,6 +124,7 @@ test("clicks aggregate per day instead of storing raw event rows", async () => {
     ).rows;
     assert.deepEqual(rows, [
       { tool_id: "first", count: 3 },
+      { tool_id: "recent", count: 2 },
       { tool_id: "second", count: 1 },
     ]);
     await db.exec("set role anon");
@@ -129,10 +135,11 @@ test("clicks aggregate per day instead of storing raw event rows", async () => {
     const stats = (
       await db.query("select public.get_gemini_stats($1) as data", [PIN])
     ).rows[0].data;
-    assert.equal(stats.grand_total, 4);
+    assert.equal(stats.grand_total, 6);
     assert.equal(stats.today, 4);
     assert.deepEqual(stats.totals, [
       { tool_id: "first", count: 3 },
+      { tool_id: "recent", count: 2 },
       { tool_id: "second", count: 1 },
     ]);
     assert.equal(stats.daily.length, 2);
