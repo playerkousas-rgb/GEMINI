@@ -9,6 +9,7 @@ const app = {
   url: "/tools/example/",
   category: "工具",
   visible: true,
+  showDesc: false,
 };
 
 test("accepts local tools and HTTPS Gemini links", () => {
@@ -48,6 +49,15 @@ test("rejects incomplete entries, duplicate IDs and unknown categories", () => {
     [{ ...app, desc: 2 }],
     [{ ...app, category: "unknown" }],
     [{ ...app, url: "javascript:alert(1)" }],
+    [{ ...app, showDesc: "yes" }],
   ])
     assert.throws(() => validateApps(data));
+});
+
+test("showDesc defaults to false and keeps explicit values", () => {
+  const legacy = { ...app };
+  delete legacy.showDesc;
+  assert.equal(validateApps([legacy])[0].showDesc, false);
+  assert.equal(validateApps([{ ...app, showDesc: true }])[0].showDesc, true);
+  assert.equal(validateApps([app])[0].showDesc, false);
 });

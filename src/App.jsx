@@ -4,6 +4,7 @@ import { validateApps, isSafeToolUrl } from "./catalog.js";
 import LoginDialog from "./components/LoginDialog.jsx";
 import ReportDialog from "./components/ReportDialog.jsx";
 import InsightsPanel from "./components/InsightsPanel.jsx";
+import AdminTable from "./components/AdminTable.jsx";
 const EMOJIS = [
     "\uD83D\uDEE0️",
     "\uD83C\uDFA8",
@@ -70,6 +71,7 @@ export default function App({
       emoji: "\uD83D\uDEE0️",
       category: "工具",
       visible: true,
+      showDesc: false,
     }),
     editorRef = React.useRef(null),
     searchRef = React.useRef(null),
@@ -169,8 +171,12 @@ export default function App({
         url: form.url.trim(),
         id: editingId || crypto.randomUUID(),
       };
-      if (!tool.title || !tool.desc || !tool.url) {
-        onNotice("請填寫工具名稱、介紹及 Share Link。");
+      if (!tool.title || !tool.url) {
+        onNotice("請填寫工具名稱及 Share Link。");
+        return;
+      }
+      if (tool.showDesc && !tool.desc) {
+        onNotice("勾咗「公開顯示介紹」但介紹係空，請先填少少字。");
         return;
       }
       if (!isSafeToolUrl(tool.url)) {
@@ -197,6 +203,7 @@ export default function App({
           emoji: "🛠️",
           category: "工具",
           visible: true,
+          showDesc: false,
         });
         setQuery("");
         setCategory("全部");
@@ -211,6 +218,7 @@ export default function App({
         emoji: w.emoji,
         category: w.category,
         visible: w.visible,
+        showDesc: w.showDesc ?? false,
       }),
         setEditingId(w.id),
         editorRef.current?.scrollIntoView({
@@ -237,6 +245,14 @@ export default function App({
         await onSave(
           apps.map((app) =>
             app.id === id ? { ...app, visible: !app.visible } : app,
+          ),
+        );
+    },
+    toggleShowDesc = async (id) => {
+      if (!busy)
+        await onSave(
+          apps.map((app) =>
+            app.id === id ? { ...app, showDesc: !app.showDesc } : app,
           ),
         );
     },
@@ -285,6 +301,7 @@ export default function App({
         emoji: "🛠️",
         category: "工具",
         visible: true,
+        showDesc: false,
       });
       setShowExport(false);
       setShowImport(false);
@@ -440,22 +457,22 @@ export default function App({
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <div className="hidden md:flex items-center gap-2 mr-1">
-                <span className="text-[10px] tracking-widest font-medium px-2.5 py-1.5 rounded-full bg-white/80 border border-white shadow-sm mono">
-                  {mode === "local" ? "LOCAL PREVIEW" : "CLOUD CONNECTED"}
-                </span>
-                <span
-                  className="w-7 h-7 rounded-full bg-white border border-white shadow-sm grid place-items-center text-[12px] animate-float"
-                  style={{
-                    animationDelay: "0.6s",
-                  }}
-                >
-                  {"\uD83C\uDF3F"}
-                </span>
-              </div>
-              {!isEditing ? (
-                <span className="hidden sm:inline-flex" aria-hidden="true" />
-              ) : (
+              {isEditing && (
+                <div className="hidden md:flex items-center gap-2 mr-1">
+                  <span className="text-[10px] tracking-widest font-medium px-2.5 py-1.5 rounded-full bg-white/80 border border-white shadow-sm mono">
+                    {mode === "local" ? "LOCAL PREVIEW" : "CLOUD CONNECTED"}
+                  </span>
+                  <span
+                    className="w-7 h-7 rounded-full bg-white border border-white shadow-sm grid place-items-center text-[12px] animate-float"
+                    style={{
+                      animationDelay: "0.6s",
+                    }}
+                  >
+                    {"\uD83C\uDF3F"}
+                  </span>
+                </div>
+              )}
+              {!isEditing ? null : (
                 <Fragment>
                   <span className="hidden sm:inline-flex h-[36px] px-3 rounded-full bg-[#141413] text-white text-[12px] items-center gap-2 shadow-lg">
                     <span className="w-2 h-2 rounded-full bg-[#D6F264] animate-pulse shadow-[0_0_8px_#D6F264]" />
@@ -473,22 +490,20 @@ export default function App({
             </div>
           </div>
         </header>
-        <section
-          className={`connection-banner ${mode}`}
-          aria-label="儲存連線狀態"
-        >
-          <span className="connection-dot" />
-          <div>
-            <strong>
-              {mode === "local" ? "本機試用 · 尚未連接 Supabase" : "雲端入口"}
-            </strong>
-            <span>
-              {mode === "local"
-                ? "內容只存在這個瀏覽器，未公開發布。清除網站資料或結束無痕工作階段可能遺失，請下載備份。"
-                : "工具清單由雲端讀取；只有管理員可以修改。"}
-            </span>
-          </div>
-        </section>
+        {mode === "local" && (
+          <section
+            className="connection-banner local"
+            aria-label="儲存連線狀態"
+          >
+            <span className="connection-dot" />
+            <div>
+              <strong>本機試用 · 尚未連接 Supabase</strong>
+              <span>
+                內容只存在這個瀏覽器，未公開發布。清除網站資料或結束無痕工作階段可能遺失，請下載備份。
+              </span>
+            </div>
+          </section>
+        )}
         {notice && (
           <div
             className={`save-notice ${notice.type}`}
@@ -515,12 +530,12 @@ export default function App({
                     <span className="w-8 h-8 rounded-[10px] bg-[#141413] text-white grid place-items-center text-[14px]">
                       {"✦"}
                     </span>
-                    {"加新工具 · 開一格方磚"}
+                    {"加新 CANVAS · 開一格方磚"}
                   </h2>
                   <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6] max-w-[54ch]">
                     {mode === "local"
-                      ? "填好名稱、介紹及 Share Link，儲存後立即產生方塊。目前只儲存到本機，未公開發布。"
-                      : "填好名稱、介紹及 Share Link，按儲存即可發布。不用修改程式碼，也不用重新部署。"}
+                      ? "填好名稱、Share Link 及介紹（可留空），儲存後立即產生 CANVAS。目前只儲存到本機，未公開發布。"
+                      : "填好名稱、Share Link 及介紹（可留空），按儲存即可發布。不用修改程式碼，也不用重新部署。"}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -627,7 +642,7 @@ export default function App({
                   </label>
                   <label className="block">
                     <span className="text-[11px] font-semibold tracking-wide text-[var(--text-2)]">
-                      {"介紹 *（限 90 字）"}
+                      {"介紹（可留空，限 90 字）"}
                     </span>
                     <div className="mt-2 focus-glow rounded-[14px] border border-[var(--border-soft)] bg-[#FBFAF7] transition-all">
                       <textarea
@@ -644,8 +659,8 @@ export default function App({
                       />
                     </div>
                     <div className="flex justify-between mt-1.5">
-                      <span className="text-[11px] text-[var(--text-3)] mono">
-                        {"寫得有心，細路更易明"}
+                      <span className="text-[11px] text-[var(--text-3)]">
+                        {"唔勾「公開顯示介紹」時，介紹只限後台睇"}
                       </span>
                       <span
                         className={`text-[11px] mono px-2 py-0.5 rounded-full ${form.desc.length > 80 ? "bg-[#FFE8E8] text-[#B42318]" : "bg-white border text-[var(--text-2)]"}`}
@@ -655,9 +670,27 @@ export default function App({
                       </span>
                     </div>
                   </label>
+                  <label className="visibility-toggle">
+                    <input
+                      type="checkbox"
+                      checked={form.showDesc}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          showDesc: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>
+                      公開顯示介紹
+                      <small>
+                        勾咗之後，訪客先會喺磚仔見到上面嘅介紹文字；唔勾就淨係後台睇到
+                      </small>
+                    </span>
+                  </label>
                   <div>
                     <span className="text-[11px] font-semibold tracking-wide text-[var(--text-2)]">
-                      {"揀個 Emoji Icon · 32px 大粒粒"}
+                      {"揀個 Emoji Icon"}
                     </span>
                     <div className="mt-3 flex flex-wrap gap-2.5">
                       {EMOJIS.map((w) => (
@@ -707,8 +740,8 @@ export default function App({
                           : editingId
                             ? "儲存修改 ✓"
                             : mode === "local"
-                              ? "新增方塊（本機）＋"
-                              : "新增並儲存 ＋"}
+                              ? "新增 CANVAS（本機）＋"
+                              : "新增 CANVAS ＋"}
                       </span>
                       <span
                         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -731,6 +764,7 @@ export default function App({
                               emoji: "\uD83D\uDEE0️",
                               category: "工具",
                               visible: true,
+                              showDesc: false,
                             }));
                         }}
                         className="btn-press h-[46px] px-5 rounded-[14px] bg-white border border-[var(--border-soft)] text-[14px] font-medium"
@@ -749,25 +783,33 @@ export default function App({
                       {"LIVE PREVIEW"}
                     </span>
                   </div>
-                  <div className="glass-tile p-6 !shadow-[0_12px_32px_rgba(0,0,0,0.08)]">
-                    <div className="w-12 h-12 rounded-[14px] bg-white border border-white shadow-sm flex items-center justify-center text-[26px] mb-5 animate-float">
-                      {form.emoji || "\uD83D\uDEE0️"}
+                  <div className="glass-tile p-5 !shadow-[0_12px_32px_rgba(0,0,0,0.08)]">
+                    <div className="w-11 h-11 rounded-[13px] bg-white border border-white shadow-sm flex items-center justify-center text-[24px] mb-4 animate-float">
+                      {form.emoji || "🛠️"}
                     </div>
-                    <h3 className="font-bold text-[17px] leading-tight">
-                      {form.title || "未命名工具"}
+                    <h3 className="font-bold text-[16px] leading-tight">
+                      {form.title || "未命名 CANVAS"}
                     </h3>
-                    <p className="text-[13px] text-[var(--text-2)] mt-2.5 leading-[1.6] line-clamp-2">
-                      {form.desc ||
-                        "簡介會顯示喺呢度，幫人快啲明咩嚟。寫得靚啲會更想撳入去。"}
-                    </p>
-                    <div className="mt-5 flex items-center gap-2">
+                    {form.showDesc && form.desc ? (
+                      <p className="text-[12px] text-[var(--text-2)] mt-2 leading-[1.6] line-clamp-2">
+                        {form.desc}
+                      </p>
+                    ) : (
+                      <p className="text-[12px] text-[var(--text-3)] mt-2 leading-[1.6]">
+                        {form.title
+                          ? "訪客只會見到名稱（介紹未公開）"
+                          : "預覽會跟隨表單更新"}
+                      </p>
+                    )}
+                    <div className="mt-4 flex items-center gap-2">
                       <span className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-white shadow-sm">
                         {form.category}
                       </span>
-                      <span className="text-[11px] text-[var(--text-2)] mono truncate">
-                        {form.url.slice(0, 26)}
-                        {"…"}
-                      </span>
+                      {form.url ? (
+                        <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#EEF8DE] border border-[#C4DAA7] text-[#3E6127]">
+                          {"LINK 已填"}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   <div className="mt-5 text-[11px] leading-[1.6] text-[var(--text-2)] mono bg-white/80 backdrop-blur p-3.5 rounded-[14px] border border-white shadow-sm">
@@ -831,7 +873,7 @@ export default function App({
                   </pre>
                   <p className="text-[11px] text-[var(--text-2)] mt-3">
                     {
-                      "JSON 只用作備份及搬移資料。日常新增、修改和排序只需按儲存，不用操作 GitHub。"
+                      "JSON 只用作備份及搬移資料。日常新增、修改和排序只需按儲存。"
                     }
                   </p>
                 </div>
@@ -839,198 +881,226 @@ export default function App({
             </div>
           </div>
         )}
-        {isEditing && mode === "cloud" && (
-          <div className="max-w-[1320px] mx-auto w-full px-5 sm:px-8 pt-7 animate-slideDown">
-            <InsightsPanel
-              apps={apps}
-              onLoadStats={onLoadStats}
-              onLoadReports={onLoadReports}
-              onDeleteReport={onDeleteReport}
-            />
-          </div>
-        )}
-        <main className="max-w-[1320px] mx-auto w-full px-5 sm:px-8 py-10 flex-1">
-          <div
-            ref={heroRef}
-            className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10"
-          >
-            <div className="animate-fadeInUp">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-white shadow-sm text-[11px] font-medium mb-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2E7D32] animate-pulse" />
-                {"教學、創作、輔導 · 一個入口"}
-                <span className="px-1.5 py-0.5 rounded-full bg-[#D6F264] text-[#111] text-[10px] ml-1">
-                  {"GEMINI TOOLS"}
-                </span>
-              </div>
-              <h2 className="display text-[36px] sm:text-[52px] font-[800] tracking-[-0.04em] leading-[0.88]">
-                <span
-                  className="inline-block animate-fadeInUp"
-                  style={{
-                    animationDelay: "0.05s",
-                  }}
-                >
-                  {"將你嘅"}
-                </span>
-                <br />
-                <span
-                  className="inline-block animate-fadeInUp relative"
-                  style={{
-                    animationDelay: "0.12s",
-                  }}
-                >
-                  {"Gemini Canvas"}
-                  <span className="absolute -top-2 -right-6 text-[16px] animate-float hidden sm:block">
-                    {"✨"}
+        {isEditing && (
+          <main className="max-w-[1120px] mx-auto w-full px-5 sm:px-8 py-8 flex-1">
+            <div className="flex flex-wrap items-end justify-between gap-3 mb-5 animate-slideDown">
+              <div>
+                <h2 className="display text-[20px] font-bold flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-[10px] bg-[#141413] text-white grid place-items-center text-[14px]">
+                    {"▤"}
                   </span>
-                </span>
-                <br />
-                <span
-                  className="inline-block animate-fadeInUp bg-gradient-to-r from-[#141413] via-[#3A5A24] to-[#7AAE3A] bg-clip-text text-transparent"
+                  {"後台 · CANVAS 管理"}
+                </h2>
+                <p className="text-[12px] text-[var(--text-2)] mt-1.5 leading-[1.6] max-w-[52ch]">
+                  {`總共 ${apps.length} 個 CANVAS（${apps.filter((app) => app.visible).length} 公開 · ${apps.filter((app) => !app.visible).length} 隱藏）。撳任何一行會載入上面表單，改 LINK 或介紹後按儲存。`}
+                </p>
+              </div>
+              <button
+                disabled={busy}
+                onClick={() =>
+                  editorRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  })
+                }
+                className="btn-press h-9 px-4 rounded-full bg-[#141413] text-white text-[12px] font-medium shadow-md"
+              >
+                {editingId ? "← 回表單修改" : "＋ 新增 CANVAS"}
+              </button>
+            </div>
+            <div
+              className="glass-panel p-4 sm:p-6 mb-6 animate-slideDown"
+              style={{ animationDelay: "0.06s" }}
+            >
+              <AdminTable
+                apps={apps}
+                busy={busy}
+                editingId={editingId}
+                onEdit={editTool}
+                onDelete={deleteTool}
+                onMove={moveTool}
+                onToggleVisible={toggleVisible}
+                onToggleShowDesc={toggleShowDesc}
+              />
+            </div>
+            {mode === "cloud" && (
+              <InsightsPanel
+                apps={apps}
+                onLoadStats={onLoadStats}
+                onLoadReports={onLoadReports}
+                onDeleteReport={onDeleteReport}
+              />
+            )}
+          </main>
+        )}
+        {!isEditing && (
+          <main className="max-w-[1320px] mx-auto w-full px-5 sm:px-8 py-10 flex-1">
+            <div
+              ref={heroRef}
+              className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10"
+            >
+              <div className="animate-fadeInUp">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-white shadow-sm text-[11px] font-medium mb-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2E7D32] animate-pulse" />
+                  {"教學、創作、輔導 · 一個入口"}
+                  <span className="px-1.5 py-0.5 rounded-full bg-[#D6F264] text-[#111] text-[10px] ml-1">
+                    {"GEMINI TOOLS"}
+                  </span>
+                </div>
+                <h2 className="display text-[36px] sm:text-[52px] font-[800] tracking-[-0.04em] leading-[0.88]">
+                  <span
+                    className="inline-block animate-fadeInUp"
+                    style={{
+                      animationDelay: "0.05s",
+                    }}
+                  >
+                    {"將你嘅"}
+                  </span>
+                  <br />
+                  <span
+                    className="inline-block animate-fadeInUp relative"
+                    style={{
+                      animationDelay: "0.12s",
+                    }}
+                  >
+                    {"Gemini Canvas"}
+                    <span className="absolute -top-2 -right-6 text-[16px] animate-float hidden sm:block">
+                      {"✨"}
+                    </span>
+                  </span>
+                  <br />
+                  <span
+                    className="inline-block animate-fadeInUp bg-gradient-to-r from-[#141413] via-[#3A5A24] to-[#7AAE3A] bg-clip-text text-transparent"
+                    style={{
+                      animationDelay: "0.19s",
+                    }}
+                  >
+                    {"工具一格格收好"}
+                  </span>
+                </h2>
+                <p
+                  className="text-[14px] sm:text-[15px] text-[var(--text-2)] mt-5 max-w-[46ch] leading-[1.7] animate-fadeInUp"
                   style={{
-                    animationDelay: "0.19s",
+                    animationDelay: "0.26s",
                   }}
                 >
-                  {"工具一格格收好"}
-                </span>
-              </h2>
-              <p
-                className="text-[14px] sm:text-[15px] text-[var(--text-2)] mt-5 max-w-[46ch] leading-[1.7] animate-fadeInUp"
-                style={{
-                  animationDelay: "0.26s",
-                }}
-              >
-                <b className="text-[#141413] font-semibold">
-                  {"一格一個工具，一按就開啟。"}
-                </b>
-                {
-                  "把 Gemini Share Link 集中收好，透過 EDIT 輕鬆管理名稱、介紹和分類。連結是否需要登入，仍由 Gemini 的分享設定決定。"
-                }
-              </p>
+                  <b className="text-[#141413] font-semibold">
+                    {"一格一個工具，一按就開啟。"}
+                  </b>
+                  {
+                    "教學、創作、輔導工具集中一處，揀完直接入 Gemini 用，唔使記任何連結。"
+                  }
+                </p>
+                <div
+                  className="flex items-center gap-2 mt-6 animate-fadeInUp"
+                  style={{
+                    animationDelay: "0.32s",
+                  }}
+                >
+                  <div className="flex -space-x-2">
+                    {["\uD83C\uDFA8", "\uD83C\uDCCF", "\uD83C\uDF08"].map(
+                      (w, T) => (
+                        <div
+                          className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-md grid place-items-center text-[14px]"
+                          key={T}
+                        >
+                          {w}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                  <span className="text-[12px] text-[var(--text-2)]">
+                    {"已經有 "}
+                    {apps.filter((app) => isEditing || app.visible).length}
+                    {" 格靚磚，等你嚟篩"}
+                  </span>
+                </div>
+              </div>
               <div
-                className="flex items-center gap-2 mt-6 animate-fadeInUp"
+                className="w-full lg:w-[380px] animate-fadeInUp"
                 style={{
-                  animationDelay: "0.32s",
+                  animationDelay: "0.22s",
                 }}
               >
-                <div className="flex -space-x-2">
-                  {["\uD83C\uDFA8", "\uD83C\uDCCF", "\uD83C\uDF08"].map(
-                    (w, T) => (
-                      <div
-                        className="w-8 h-8 rounded-full bg-white border-2 border-white shadow-md grid place-items-center text-[14px]"
-                        key={T}
-                      >
-                        {w}
-                      </div>
-                    ),
+                <div
+                  className={`relative group rounded-[18px] border bg-white/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all duration-500 ${isHovered ? "ring-[3px] ring-[#D6F264]/60 border-[#141413] shadow-[0_16px_40px_rgba(0,0,0,0.12)] scale-[1.01]" : "border-white hover:border-[rgba(0,0,0,0.08)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)]"}`}
+                >
+                  <span
+                    className={`absolute left-4 top-1/2 -translate-y-1/2 text-[16px] transition-all duration-300 ${isHovered ? "scale-110 rotate-[-8deg]" : "opacity-60"}`}
+                  >
+                    {"⌕"}
+                  </span>
+                  <input
+                    aria-label="搜尋工具"
+                    value={query}
+                    onChange={(w) => setQuery(w.target.value)}
+                    onFocus={() => setIsHovered(true)}
+                    onBlur={() => setIsHovered(false)}
+                    placeholder="搵工具...  例如：漫畫、詞彙、社交"
+                    className="w-full h-[52px] pl-11 pr-4 rounded-[18px] bg-transparent text-[14px] font-medium outline-none placeholder:text-[var(--text-3)]"
+                  />
+                  {query && (
+                    <button
+                      aria-label="清除搜尋"
+                      onClick={() => setQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#141413] text-white grid place-items-center text-[12px] btn-press animate-popIn"
+                    >
+                      {"✕"}
+                    </button>
                   )}
                 </div>
-                <span className="text-[12px] text-[var(--text-2)]">
-                  {"已經有 "}
-                  {apps.filter((app) => isEditing || app.visible).length}
-                  {" 格靚磚，等你嚟篩"}
-                </span>
+                <div className="flex gap-2 mt-4 flex-wrap">
+                  {CATEGORIES.map((w) => (
+                    <button
+                      onClick={() => {
+                        (setCategory(w), setRefreshKey((T) => T + 1));
+                      }}
+                      className={`btn-press h-9 px-4 rounded-full text-[12px] font-semibold border backdrop-blur transition-all duration-300 ${category === w ? "pill-active" : "bg-white/80 border-white text-[var(--text-2)] hover:bg-white hover:border-[#141413]/10 hover:text-[#141413] hover:shadow-md hover:-translate-y-[1px]"}`}
+                      aria-pressed={category === w}
+                      key={w}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div
-              className="w-full lg:w-[380px] animate-fadeInUp"
+              className="flex flex-wrap items-center gap-2.5 mb-8 animate-fadeInUp"
               style={{
-                animationDelay: "0.22s",
+                animationDelay: "0.36s",
               }}
             >
-              <div
-                className={`relative group rounded-[18px] border bg-white/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all duration-500 ${isHovered ? "ring-[3px] ring-[#D6F264]/60 border-[#141413] shadow-[0_16px_40px_rgba(0,0,0,0.12)] scale-[1.01]" : "border-white hover:border-[rgba(0,0,0,0.08)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.08)]"}`}
-              >
-                <span
-                  className={`absolute left-4 top-1/2 -translate-y-1/2 text-[16px] transition-all duration-300 ${isHovered ? "scale-110 rotate-[-8deg]" : "opacity-60"}`}
-                >
-                  {"⌕"}
-                </span>
-                <input
-                  aria-label="搜尋工具"
-                  value={query}
-                  onChange={(w) => setQuery(w.target.value)}
-                  onFocus={() => setIsHovered(true)}
-                  onBlur={() => setIsHovered(false)}
-                  placeholder="搵工具...  例如：漫畫、詞彙、社交"
-                  className="w-full h-[52px] pl-11 pr-4 rounded-[18px] bg-transparent text-[14px] font-medium outline-none placeholder:text-[var(--text-3)]"
-                />
-                {query && (
-                  <button
-                    aria-label="清除搜尋"
-                    onClick={() => setQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#141413] text-white grid place-items-center text-[12px] btn-press animate-popIn"
-                  >
-                    {"✕"}
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2 mt-4 flex-wrap">
-                {CATEGORIES.map((w) => (
-                  <button
-                    onClick={() => {
-                      (setCategory(w), setRefreshKey((T) => T + 1));
-                    }}
-                    className={`btn-press h-9 px-4 rounded-full text-[12px] font-semibold border backdrop-blur transition-all duration-300 ${category === w ? "pill-active" : "bg-white/80 border-white text-[var(--text-2)] hover:bg-white hover:border-[#141413]/10 hover:text-[#141413] hover:shadow-md hover:-translate-y-[1px]"}`}
-                    aria-pressed={category === w}
-                    key={w}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-4 flex items-center gap-2 text-[11px] text-[var(--text-3)] mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D6F264]" />
-                {"焦點發光動畫 · Pill 變形 · 滑鼠視差光球"}
-              </div>
-            </div>
-          </div>
-          <div
-            className="flex flex-wrap items-center gap-2.5 mb-8 animate-fadeInUp"
-            style={{
-              animationDelay: "0.36s",
-            }}
-          >
-            <span className="px-3 py-1.5 rounded-full bg-white/80 border border-white shadow-sm text-[11px] font-medium backdrop-blur">
-              {"共 "}
-              {apps.filter((app) => isEditing || app.visible).length}
-              {" 格工具"}
-            </span>
-            <span className="px-3 py-1.5 rounded-full bg-[#141413] text-white text-[11px] font-medium shadow-md">
-              {"篩選到 "}
-              {filteredApps.length}
-              {" 格"}
-            </span>
-            <span className="px-3 py-1.5 rounded-full bg-white/60 border border-white text-[11px] mono opacity-70">
-              {"操作 "}
-              {refreshKey}
-              {" · 保持輕盈"}
-            </span>
-            {isEditing && (
-              <span className="px-3 py-1.5 rounded-full bg-[#FFF4C2] border border-[#F5E6A0] text-[#111] text-[11px] font-medium animate-[glowPulse_2s_ease-in-out_infinite]">
-                {"編輯中：用 ↑ ↓ 排序並儲存"}
+              <span className="px-3 py-1.5 rounded-full bg-white/80 border border-white shadow-sm text-[11px] font-medium backdrop-blur">
+                {"共 "}
+                {apps.filter((app) => isEditing || app.visible).length}
+                {" 格工具"}
               </span>
-            )}
-            <span className="ml-auto hidden sm:flex items-center gap-2 text-[11px] text-[var(--text-3)]">
-              <span>{"滾動視差已啟用"}</span>
-              <span className="w-6 h-[1px] bg-[var(--text-3)]" />
-              <span>{"32px Emoji"}</span>
-            </span>
-          </div>
-          <div
-            className="grid gap-5 sm:gap-6"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            }}
-          >
-            {filteredApps.map((w, T) => {
-              let A = apps.findIndex((fe) => fe.id === w.id);
-              return (
-                <div
-                  className="group relative glass-tile p-6 flex flex-col min-h-[210px] overflow-hidden animate-fadeInUp"
-                  style={{
-                    animationDelay: `${T * 0.05 + 0.4}s`,
-                  }}
+              <span className="px-3 py-1.5 rounded-full bg-[#141413] text-white text-[11px] font-medium shadow-md">
+                {"篩選到 "}
+                {filteredApps.length}
+                {" 格"}
+              </span>
+
+            </div>
+            <div
+              className="grid gap-4 sm:gap-5"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(224px, 1fr))",
+              }}
+            >
+              {filteredApps.map((w, T) => (
+                <a
+                  href={w.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   onPointerDown={addRipple}
+                  onClick={() => onTrackClick?.(w.id)}
+                  aria-label={`開啟 ${w.title}`}
+                  className="group relative glass-tile p-5 flex flex-col overflow-hidden animate-fadeInUp"
+                  style={{
+                    animationDelay: `${T * 0.04 + 0.4}s`,
+                  }}
                   key={w.id}
                 >
                   <div className="absolute inset-0 overflow-hidden rounded-[20px] pointer-events-none">
@@ -1049,212 +1119,130 @@ export default function App({
                   </div>
                   <div className="absolute top-0 left-4 right-4 h-[1px] bg-gradient-to-r from-transparent via-white to-transparent opacity-80" />
                   <div className="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-gradient-to-br from-[#D6F264]/0 to-[#D6F264]/0 group-hover:from-[#D6F264]/30 group-hover:to-[#C2E8A0]/20 blur-[1px] transition-all duration-700" />
-                  {isEditing && (
-                    <div className="tile-admin-controls">
-                      <button
-                        disabled={busy || A === 0}
-                        aria-label={`將 ${w.title} 向前移`}
-                        onClick={() => moveTool(A, -1)}
-                        className="btn-press w-8 h-8 rounded-full bg-white border border-white shadow-md text-[12px] hover:bg-[#141413] hover:text-white transition-colors"
-                      >
-                        {"↑"}
-                      </button>
-                      <button
-                        disabled={busy || A === apps.length - 1}
-                        aria-label={`將 ${w.title} 向後移`}
-                        onClick={() => moveTool(A, 1)}
-                        className="btn-press w-8 h-8 rounded-full bg-white border border-white shadow-md text-[12px] hover:bg-[#141413] hover:text-white transition-colors"
-                      >
-                        {"↓"}
-                      </button>
-                      <button
-                        disabled={busy}
-                        aria-label={`編輯 ${w.title}`}
-                        onClick={() => editTool(w)}
-                        className="btn-press w-8 h-8 rounded-full bg-white border border-white shadow-md text-[12px] hover:bg-[#141413] hover:text-white transition-colors"
-                      >
-                        {"✎"}
-                      </button>
-                      <button
-                        disabled={busy}
-                        aria-label={`刪除 ${w.title}`}
-                        onClick={() => deleteTool(w.id)}
-                        className="btn-press w-8 h-8 rounded-full bg-[#FFE8E8] border border-[#FFCFCF] shadow-sm text-[12px] hover:bg-[#FF3B30] hover:text-white transition-colors"
-                      >
-                        {"✕"}
-                      </button>
-                    </div>
-                  )}
-                  {isEditing && (
-                    <button
-                      className="visibility-pill"
-                      disabled={busy}
-                      onClick={() => toggleVisible(w.id)}
-                      aria-label={`${w.visible ? "隱藏" : "公開"} ${w.title}`}
-                    >
-                      {w.visible ? "● 公開顯示" : "○ 已隱藏"}
-                    </button>
-                  )}
                   <div className="flex items-start justify-between relative z-[1]">
-                    <div className="emoji-wrap w-[52px] h-[52px] rounded-[16px] bg-white border border-white shadow-[0_8px_20px_rgba(0,0,0,0.06),0_1px_0_white_inset] flex items-center justify-center text-[32px] transition-transform duration-500">
+                    <div className="emoji-wrap w-[42px] h-[42px] rounded-[13px] bg-white border border-white shadow-[0_8px_20px_rgba(0,0,0,0.06),0_1px_0_white_inset] flex items-center justify-center text-[24px] transition-transform duration-500">
                       {w.emoji}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-white/90 border border-white shadow-sm backdrop-blur">
-                        {w.category}
-                      </span>
-                      <a
-                        href={w.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => onTrackClick?.(w.id)}
-                        className="btn-press w-8 h-8 rounded-full bg-[#141413] text-white flex items-center justify-center text-[12px] shadow-[0_6px_16px_rgba(0,0,0,0.16)] group-hover:rotate-[-12deg] group-hover:scale-110 transition-all duration-500"
-                        aria-label="開啟工具"
-                      >
-                        {"↗"}
-                      </a>
-                    </div>
-                  </div>
-                  <a
-                    href={w.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => onTrackClick?.(w.id)}
-                    className="mt-5 block group/title relative z-[1]"
-                  >
-                    <h3 className="text-[18px] font-bold leading-[1.2] tracking-tight group-hover/title:underline decoration-[1.5px] underline-offset-[6px] decoration-[#141413]/20">
-                      {w.title}
-                    </h3>
-                  </a>
-                  <p className="text-[13px] text-[var(--text-2)] mt-3 leading-[1.65] line-clamp-2 min-h-[44px] relative z-[1]">
-                    {w.desc}
-                  </p>
-                  <div className="mt-auto pt-5 flex items-center justify-between relative z-[1]">
-                    <span className="text-[11px] mono text-[var(--text-2)] truncate max-w-[160px] bg-white/70 px-2 py-1 rounded-full border border-white">
-                      {w.url.replace("https://", "")}
+                    <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-white/90 border border-white shadow-sm backdrop-blur">
+                      {w.category}
                     </span>
-                    <div className="flex items-center gap-2">
-                      {!isEditing && mode === "cloud" && (
-                        <button
-                          type="button"
-                          className="report-link"
-                          onClick={() => openReport(w)}
-                        >
-                          回報
-                        </button>
-                      )}
-                      <a
-                        href={w.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => onTrackClick?.(w.id)}
-                        className="btn-press text-[12px] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141413] text-white shadow-md hover:gap-2 hover:shadow-lg transition-all"
-                      >
-                        {"開啟 "}
-                        <span className="text-[14px] group-hover:translate-x-0.5 transition-transform">
-                          {"→"}
-                        </span>
-                      </a>
-                    </div>
                   </div>
-                  <div className="absolute left-6 right-6 bottom-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D6F264]/0 to-transparent group-hover:via-[#D6F264]/60 transition-all duration-700" />
+                  <h3 className="mt-3.5 text-[15px] font-bold leading-[1.25] tracking-tight relative z-[1] group-hover:underline decoration-[1.5px] underline-offset-[5px] decoration-[#141413]/25">
+                    {w.title}
+                  </h3>
+                  {w.showDesc && w.desc ? (
+                    <p className="text-[12px] text-[var(--text-2)] mt-1.5 leading-[1.55] line-clamp-2 relative z-[1]">
+                      {w.desc}
+                    </p>
+                  ) : null}
+                  <div className="mt-auto pt-3.5 flex items-center justify-between relative z-[1]">
+                    {mode === "cloud" ? (
+                      <span
+                        className="report-link"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openReport(w);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            openReport(w);
+                          }
+                        }}
+                      >
+                        回報
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="text-[12px] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141413] text-white shadow-md group-hover:shadow-lg transition-all">
+                      {"開啟 "}
+                      <span className="text-[13px] group-hover:translate-x-0.5 transition-transform">
+                        {"→"}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="absolute left-5 right-5 bottom-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D6F264]/0 to-transparent group-hover:via-[#D6F264]/60 transition-all duration-700" />
+                </a>
+              ))}
+            </div>
+            {filteredApps.length === 0 && (
+              <div className="mt-20 text-center animate-popIn">
+                <div className="inline-flex w-20 h-20 rounded-full bg-white border border-white shadow-[0_12px_32px_rgba(0,0,0,0.06)] items-center justify-center text-[28px] animate-float">
+                  {"∅"}
                 </div>
-              );
-            })}
-            {isEditing && (
-              <button
-                onClick={() =>
-                  editorRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                  })
-                }
-                className="btn-press min-h-[210px] rounded-[20px] border-2 border-dashed border-[rgba(20,20,19,0.12)] bg-[rgba(255,255,255,0.5)] backdrop-blur flex flex-col items-center justify-center gap-3 text-[var(--text-2)] hover:border-[#141413] hover:text-[#141413] hover:bg-white/80 transition-all duration-300 group animate-fadeInUp"
-                style={{
-                  animationDelay: `${filteredApps.length * 0.05 + 0.5}s`,
-                }}
-              >
-                <span className="w-12 h-12 rounded-full bg-white border border-white shadow-md flex items-center justify-center text-[20px] group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                  {"＋"}
-                </span>
-                <span className="text-[13px] font-semibold">
-                  {"新增工具方塊"}
-                </span>
-                <span className="text-[11px] opacity-60">
-                  {"填好名稱、介紹及 Share Link"}
-                </span>
-              </button>
+                <p className="mt-5 text-[14px] text-[var(--text-2)]">
+                  {apps.length === 0
+                    ? "你的工具入口準備好了，加入第一條 Share Link 吧。"
+                    : "搵唔到相關工具，試下轉關鍵字或分類"}
+                </p>
+                <button
+                  onClick={() => {
+                    if (apps.length === 0) {
+                      if (isEditing)
+                        editorRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                      else setShowLogin(true);
+                    } else {
+                      setQuery("");
+                      setCategory("全部");
+                    }
+                  }}
+                  className="mt-4 btn-press h-9 px-4 rounded-full bg-[#141413] text-white text-[12px] font-medium"
+                >
+                  {apps.length === 0 ? "＋ 新增第一個工具" : "清除篩選"}
+                </button>
+              </div>
             )}
-          </div>
-          {filteredApps.length === 0 && (
-            <div className="mt-20 text-center animate-popIn">
-              <div className="inline-flex w-20 h-20 rounded-full bg-white border border-white shadow-[0_12px_32px_rgba(0,0,0,0.06)] items-center justify-center text-[28px] animate-float">
-                {"∅"}
-              </div>
-              <p className="mt-5 text-[14px] text-[var(--text-2)]">
-                {apps.length === 0
-                  ? "你的工具入口準備好了，加入第一條 Share Link 吧。"
-                  : "搵唔到相關工具，試下轉關鍵字或分類"}
-              </p>
-              <button
-                onClick={() => {
-                  if (apps.length === 0) {
-                    if (isEditing)
-                      editorRef.current?.scrollIntoView({ behavior: "smooth" });
-                    else setShowLogin(true);
-                  } else {
-                    setQuery("");
-                    setCategory("全部");
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="glass-tile p-6 !min-h-0">
+                <div className="w-8 h-8 rounded-[10px] bg-[#141413] text-white grid place-items-center text-[12px] font-bold mb-4">
+                  {"01"}
+                </div>
+                <div className="text-[13px] font-bold tracking-tight">
+                  {"揀一個工具"}
+                </div>
+                <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6]">
+                  {
+                    "教學、創作、輔導工具都集中喺呢度，用搜尋或分類揀個你需要嘅。"
                   }
-                }}
-                className="mt-4 btn-press h-9 px-4 rounded-full bg-[#141413] text-white text-[12px] font-medium"
-              >
-                {apps.length === 0 ? "＋ 新增第一個工具" : "清除篩選"}
-              </button>
-            </div>
-          )}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="glass-tile p-6 !min-h-0">
-              <div className="w-8 h-8 rounded-[10px] bg-[#141413] text-white grid place-items-center text-[12px] font-bold mb-4">
-                {"01"}
+                </p>
               </div>
-              <div className="text-[13px] font-bold tracking-tight">
-                {"貼 LINK 即成磚"}
+              <div className="glass-tile p-6 !min-h-0">
+                <div className="w-8 h-8 rounded-[10px] bg-white border border-white shadow-sm grid place-items-center text-[12px] font-bold mb-4">
+                  {"02"}
+                </div>
+                <div className="text-[13px] font-bold tracking-tight">
+                  {"一按就開啟"}
+                </div>
+                <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6]">
+                  {
+                    "撳磚仔會直接開去 Gemini，唔使安裝、唔使記連結，開完即刻用。"
+                  }
+                </p>
               </div>
-              <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6]">
-                {
-                  "在 Gemini 複製 Share Link，進入 EDIT 填好名稱、介紹及連結，即可建立工具方塊。"
-                }
-              </p>
-            </div>
-            <div className="glass-tile p-6 !min-h-0">
-              <div className="w-8 h-8 rounded-[10px] bg-white border border-white shadow-sm grid place-items-center text-[12px] font-bold mb-4">
-                {"02"}
-              </div>
-              <div className="text-[13px] font-bold tracking-tight">
-                {"名稱、介紹、連結 · 就這麼簡單"}
-              </div>
-              <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6]">
-                {
-                  "不用上載 HTML 或修改程式。也可以選擇圖示、分類，隨時修改、排序或隱藏工具。"
-                }
-              </p>
-            </div>
-            <div className="relative overflow-hidden rounded-[20px] bg-[#141413] border border-[#1E1E1E] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-              <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[#D6F264]/20 blur-[24px]" />
-              <div className="text-[12px] font-bold tracking-wide opacity-60">
-                {"03 · 一個入口，集中你的工具"}
-              </div>
-              <p className="text-[13px] mt-3 leading-[1.7]">
-                {mode === "local"
-                  ? "目前為本機試用。雲端連接完成後，管理員儲存的公開工具將可在其他裝置及訪客頁面看到。"
-                  : "清單儲存在雲端，公開工具可在不同裝置開啟。Gemini 連結本身的分享權限，仍由 Gemini 控制。"}
-              </p>
-              <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-white/10 border border-white/10">
-                {mode === "local" ? "◌ 雲端設定待完成" : "● 已連接雲端"}
+              <div className="relative overflow-hidden rounded-[20px] bg-[#141413] border border-[#1E1E1E] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[#D6F264]/20 blur-[24px]" />
+                <div className="text-[12px] font-bold tracking-wide opacity-60">
+                  {"03 · 登入 Google 帳號"}
+                </div>
+                <p className="text-[13px] mt-3 leading-[1.7]">
+                  {
+                    "部分工具需要登入 Gemini 先發揮全部功能。連結能否開啟，由該連結本身嘅 Gemini 分享設定決定。"
+                  }
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-white/10 border border-white/10">
+                  {"● 全部工具即開即用"}
+                </div>
               </div>
             </div>
-          </div>
-        </main>
+          </main>
+        )}
         <footer className="mt-auto border-t border-white/60 bg-white/40 backdrop-blur-xl">
           <div className="max-w-[1320px] mx-auto px-5 sm:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-[var(--text-2)]">
             <div className="flex items-center gap-3">
@@ -1274,27 +1262,6 @@ export default function App({
               </button>
               <span className="w-1 h-1 rounded-full bg-[var(--border-soft)]" />
               <span>{"一格一Link · 集中你的工具"}</span>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#D6F264]/30 text-[#2E5520] text-[10px] font-medium border border-[#D6F264]/40">
-                {"\uD83C\uDF3F Scout Green"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <a
-                href="https://github.com/playerkousas-rgb/GEMINI"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-press inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#141413] text-white hover:opacity-90 shadow-md transition-all text-[12px] font-medium"
-              >
-                {"GitHub Repo ↗"}
-              </a>
-              <a
-                href="https://spedmix.pages.dev/four-panel-comic"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-press h-9 px-4 rounded-full bg-white border border-white shadow-sm inline-flex items-center text-[12px] font-medium"
-              >
-                {"參考版式"}
-              </a>
             </div>
           </div>
         </footer>

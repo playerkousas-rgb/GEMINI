@@ -105,9 +105,7 @@ export default function InsightsPanel({
       <h3 className="text-[13px] font-bold mt-5 mb-2">{"回報"}</h3>
       <div className="insights-rows">
         {(reports?.reports ?? []).length === 0 && (
-          <p className="text-[12px] text-[var(--text-2)]">
-            沒有待處理的回報。
-          </p>
+          <p className="text-[12px] text-[var(--text-2)]">沒有待處理的回報。</p>
         )}
         {(reports?.reports ?? []).map((r) => (
           <div className="report-row" key={r.id}>

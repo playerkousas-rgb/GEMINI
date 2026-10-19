@@ -1,6 +1,8 @@
 # NoScout · Gemini Tools Hub
 
-**一個統一的 Gemini Share Link 入口。** 使用者在首頁開啟工具；管理員在 EDIT 填寫名稱、介紹及分享網址，儲存後就產生方塊，不需要上載 Canvas HTML、不需要手動改 JSON，也不需要每次重新部署。
+**一個統一的 Gemini Share Link 入口。** 使用者在首頁開啟工具；管理員在後台（EDIT）填寫名稱、介紹及分享網址，儲存後就產生方塊，不需要上載 Canvas HTML、不需要手動改 JSON，也不需要每次重新部署。
+
+**公開頁只放公開內容：** 磚仔上唔會顯示 Share Link 文字，介紹文字預設唔會顯示（每個 CANVAS 有「公開顯示介紹」開關，後台先勾先得），頁尾冇 GitHub Repo 連結。管理入口保持不起眼設計（`/edit` 或頁尾 ©）。
 
 保留原稿的米白／綠色、玻璃質感及方塊版面。使用 React + Vite，Vercel 部署；已連接 Supabase（與 APP STORE 共用同一專案，只使用 `gemini_hub_*` 表），提供管理密碼、點擊統計及訪客回報系統。
 
@@ -9,6 +11,7 @@
 ## 管理入口（不起眼設計）
 
 - 沒有顯眼的 EDIT 按鈕。管理入口有兩條路：**網址直接開 `/edit`**，或**撳頁尾「© 年份 Scout System」**。
+- 進入管理後版面切到**後台**：上面是新增表單（名稱、分類、Share Link、介紹、公開顯示介紹、Emoji、公開顯示），下面是 **CANVAS 清單**（連隱藏一齊列）——每行有完整 LINK（可一鍵複製）、介紹、公開／介紹公開兩個開關、↑↓ 排序、編輯、刪除；撳任何一行會載入上面表單，改 LINK 或介紹後按儲存即發布。訪客版面（未登入）完全看不到後台、LINK 文字及未公開介紹。
 - 雲端模式只需輸入**管理密碼（出廠設定 `0728`）**，一個欄位就入到管理頁面；不需要電郵、不需要 Supabase 帳戶登入。
 - 密碼在資料庫的 RPC 內驗證，前端不會硬編碼密碼，也不放任何 secret / service_role key。
 - 這只是輕量保護（口令 `0728` 本身不是機密），用作擋住路人亂改清單及保護統計頁；不要放真正敏感的資料。要改密碼：在 Supabase SQL Editor 執行 `update public.gemini_hub_state set pin = '新密碼' where singleton;`
@@ -41,7 +44,7 @@ npm run dev
 在未填 Supabase 環境變數時，顯示 **「本機試用 · 尚未連接 Supabase」**：
 
 - 無假 PIN、無假登入：按「進入本機試用」即可操作。
-- 填寫名稱、介紹、Share Link，選 Emoji、分類及公開／隱藏，新增後即產生方塊。
+- 填寫名稱、Share Link、介紹（可留空），選 Emoji、分類、公開／隱藏及「公開顯示介紹」，新增後即產生方塊。
 - 可修改、刪除、以 ↑ ↓ 排序、搜尋及按分類篩選。
 - 工具清單存於當前 origin 的 `localStorage`；重新整理仍保留，但**不會公開、跨裝置同步或自動上傳**。
 - 退出試用後，可預覽訪客版面；被隱藏的項目不顯示。
@@ -53,7 +56,8 @@ npm run dev
 `data/website-gemini.json` 收錄 2026-10-18 從 WEBSITE 公開資料讀取的「gemini 輔助工具」分類共 6 項：美食攝影、卡牌生成器、AI 對話助手、童設計、魔衣廚、相片工作台。
 
 - 保留原始 ID、名稱、介紹及完整 Share Link（包括大小寫）；原站未設圖示，這裡補上 Emoji。
-- 配合入口既有分類，AI 對話助手歸「工具」，其餘歸「創作」。可在 EDIT 修改。
+- 配合入口既有分類，AI 對話助手歸「工具」，其餘歸「創作」。可在後台修改。
+- 呢 6 條介紹係內部備註，`showDesc` 預設 `false`：公開頁唔會顯示介紹文字，只喺後台見到。想公開發表，喺後台改好文字後先勾「公開顯示介紹」。
 - 本機模式首次載入會一次性補入缺少的工具；按 ID／完整連結去重，不覆蓋原有試填內容、編輯及排序。
 - 匯入標記與草稿一同保存。之後自行刪除的工具不會因重新整理而復活。
 - 這是一次性搬入，不會持續同步，也沒有寫入或修改 WEBSITE 的資料庫。
@@ -70,7 +74,8 @@ npm run dev
    - 管理（需正確 PIN）：`save_gemini_catalog`、`get_gemini_stats`、`get_gemini_reports`、`delete_gemini_report`。
    - 兩份腳本均可重跑，不會清空原有資料。
 3. **新增**：在 Supabase SQL Editor 執行 `migrations/003_gemini_hub_retention.sql`，啟用每日自動瘦身（點擊保留 365 日、回報保留 90 日）。此 migration 可重跑；無需額外設定 Vercel 排程或 serverless function。
-4. Vercel 環境變數（已設定，只放公開值）：
+4. **新增**：在 Supabase SQL Editor 執行 `migrations/004_gemini_show_desc.sql`，令雲端儲存接受每個工具的 `showDesc`（公開顯示介紹）布林值；舊記錄沒有該欄位時視作 `false`（介紹唔會顯示）。此 migration 只重建 `save_gemini_catalog`，可重跑、唔會清資料；舊清單要喺後台按一次儲存先會寫入該欄位。
+5. Vercel 環境變數（已設定，只放公開值）：
 
    | 名稱 | 內容 |
    |---|---|
@@ -78,8 +83,8 @@ npm run dev
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | publishable key（`sb_publishable_…`），或舊版 **anon** key |
 
    本機則複製 `.env.example` 為 `.env.local`，填入同樣兩項，重新啟動開發伺服器。
-5. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入管理頁、統計及回報收件箱。
-6. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
+6. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入後台（新增表單＋CANVAS 清單）、統計及回報收件箱。
+7. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
 
 ### 權限及儲存方式
 
@@ -123,12 +128,14 @@ src/data/cloud-store.js          Supabase PIN 驗證、清單／統計／回報 
 src/data/store.js                根據環境設定選擇模式
 src/components/LoginDialog.jsx   可鍵盤操作的管理密碼／試用對話框
 src/components/ReportDialog.jsx  訪客回報對話框
+src/components/AdminTable.jsx    後台 CANVAS 清單（LINK／介紹編輯、開關、排序）
 src/components/InsightsPanel.jsx 管理頁點擊統計及回報收件箱
 src/styles/theme.css             配色、玻璃效果、動畫及管理介面
 src/styles/utilities.css         從原稿保留的 Tailwind 編譯樣式
 migrations/001_gemini_hub.sql     清單資料表、RLS、讀寫 RPC
 migrations/002_gemini_pin_report_stats.sql  PIN 制、點擊統計、回報系統
 migrations/003_gemini_hub_retention.sql    每日瘦身及 365／90 日資料保留
+migrations/004_gemini_show_desc.sql        每個工具的 showDesc（公開顯示介紹）欄位
 .env.example                     公開環境設定範本，不含祕密
 tests/                           驗證、儲存及資料庫權限測試
 vercel.json                      Vercel 部署與 /edit 路由

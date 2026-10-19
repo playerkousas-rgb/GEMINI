@@ -6,7 +6,8 @@
     "url": "https://share.gemini.google/HqZz4M9LUxDy",
     "emoji": "🍽️",
     "category": "創作",
-    "visible": true
+    "visible": true,
+    "showDesc": false
   },
   {
     "id": "a5a33714-2588-4b59-ba84-dc6c758df112",
@@ -15,7 +16,8 @@
     "url": "https://share.gemini.google/EnnFLUKmEO0s",
     "emoji": "🃏",
     "category": "創作",
-    "visible": true
+    "visible": true,
+    "showDesc": false
   },
   {
     "id": "35a1bb69-2758-4d5d-b688-c4c01cf72d04",
@@ -24,7 +26,8 @@
     "url": "https://share.gemini.google/wMmeJ0SInTEQ",
     "emoji": "💬",
     "category": "工具",
-    "visible": true
+    "visible": true,
+    "showDesc": false
   },
   {
     "id": "e13ebde6-8263-4c17-962b-8863fea79a4d",
@@ -33,7 +36,8 @@
     "url": "https://share.gemini.google/snrL7mLrTDdu",
     "emoji": "🎨",
     "category": "創作",
-    "visible": true
+    "visible": true,
+    "showDesc": false
   },
   {
     "id": "0eecf686-e63b-4eaf-8d5f-1b80a0f7432e",
@@ -42,7 +46,8 @@
     "url": "https://share.gemini.google/kEM7bkoAVIP0",
     "emoji": "👗",
     "category": "創作",
-    "visible": true
+    "visible": true,
+    "showDesc": false
   },
   {
     "id": "89af2213-7edf-48a0-b2cc-d0d89335fe06",
@@ -51,6 +56,7 @@
     "url": "https://share.gemini.google/wRhLIpy0Bnvb",
     "emoji": "🖼️",
     "category": "創作",
-    "visible": true
+    "visible": true,
+    "showDesc": false
   }
 ]
