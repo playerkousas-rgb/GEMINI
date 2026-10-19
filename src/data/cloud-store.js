@@ -19,7 +19,10 @@ function explain(error) {
   );
 }
 
-export function createCloudStore(client, getStorage = () => window.sessionStorage) {
+export function createCloudStore(
+  client,
+  getStorage = () => window.sessionStorage,
+) {
   function readPin() {
     try {
       return getStorage().getItem(PIN_STORAGE_KEY) || null;

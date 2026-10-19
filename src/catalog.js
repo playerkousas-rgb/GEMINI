@@ -54,8 +54,11 @@ export function validateApps(value) {
     }
     if (app.visible !== undefined && typeof app.visible !== "boolean")
       fail("visible 必須為布林值");
+    if (app.showDesc !== undefined && typeof app.showDesc !== "boolean")
+      fail("showDesc 必須為布林值");
     return {
       visible: app.visible ?? true,
+      showDesc: app.showDesc ?? true,
       ...Object.fromEntries(
         ["id", "title", "emoji", "desc", "url", "category"].map((key) => [
           key,

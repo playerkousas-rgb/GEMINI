@@ -1,10 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createLocalStore, DRAFT_KEY } from "../src/data/local-store.js";
-import {
-  createCloudStore,
-  PIN_STORAGE_KEY,
-} from "../src/data/cloud-store.js";
+import { createCloudStore, PIN_STORAGE_KEY } from "../src/data/cloud-store.js";
 const tool = {
   id: "one",
   title: "工具",
@@ -13,6 +10,7 @@ const tool = {
   url: "https://gemini.google.com/share/test",
   category: "工具",
   visible: true,
+  showDesc: false,
 };
 function memory() {
   const data = new Map();
@@ -146,7 +144,10 @@ test("click tracking never blocks; reports surface honest errors", async () => {
     memory,
   );
   await failing.trackClick("one"); // fire-and-forget: must not throw
-  await assert.rejects(failing.submitReport("one", "工具", "壞了"), /雲端操作失敗/);
+  await assert.rejects(
+    failing.submitReport("one", "工具", "壞了"),
+    /雲端操作失敗/,
+  );
   const limited = createCloudStore(
     { rpc: async () => ({ error: { message: "RATE_LIMITED" } }) },
     memory,

@@ -21,7 +21,10 @@ export default function Hub({ store, initialSnapshot }) {
         };
         current.current = safe;
         setSnapshot(safe);
-        setNotice({ type: "error", text: "已登出。請重新輸入管理密碼以管理工具。" });
+        setNotice({
+          type: "error",
+          text: "已登出。請重新輸入管理密碼以管理工具。",
+        });
       }),
     [store],
   );

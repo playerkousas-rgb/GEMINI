@@ -13,6 +13,7 @@ const tool = {
   category: "工具",
   url: "https://gemini.google.com/share/test",
   visible: true,
+  showDesc: false,
 };
 const PIN = "0728";
 
@@ -25,6 +26,7 @@ async function setup() {
     "../migrations/001_gemini_hub.sql",
     "../migrations/002_gemini_pin_report_stats.sql",
     "../migrations/003_gemini_hub_retention.sql",
+    "../migrations/004_gemini_show_desc.sql",
   ]) {
     const sql = await readFile(new URL(file, import.meta.url), "utf8");
     await db.exec(sql);
@@ -76,6 +78,7 @@ test("PIN gate replaces auth whitelist: hidden records, validation, conflicts", 
       [tool, tool],
       [{ ...tool, url: "javascript:alert(1)" }],
       [{ ...tool, visible: "yes" }],
+      [{ ...tool, showDesc: "yes" }],
       [{ ...tool, category: "invalid" }],
       [{ ...tool, title: "" }],
       [{ ...tool, url: "https://user:password@example.com" }],
@@ -87,9 +90,17 @@ test("PIN gate replaces auth whitelist: hidden records, validation, conflicts", 
     const publicView = await read(null);
     assert.deepEqual(publicView.apps, [tool]);
     assert.equal(publicView.can_edit, false);
-    await save([hidden, tool], 1, PIN);
+    // showDesc round-trips; legacy items without the flag default to public.
+    await save([{ ...tool, showDesc: true }, hidden], 1, PIN);
+    assert.equal((await read(PIN)).apps[0].showDesc, true);
+    const legacy = { ...tool };
+    delete legacy.showDesc;
+    await save([hidden, legacy], 2, PIN);
     assert.equal((await read(PIN)).apps[0].id, "secret");
-    await save([], 2, PIN);
+    assert.equal((await read(PIN)).apps[1].showDesc, true);
+    await save([{ ...tool, showDesc: false }], 3, PIN);
+    assert.equal((await read(PIN)).apps[0].showDesc, false);
+    await save([], 4, PIN);
     assert.deepEqual((await read(PIN)).apps, []);
   } finally {
     await db.close();
@@ -152,10 +163,11 @@ test("reports: anonymous intake, validation, pruning, daily cap, PIN inbox", asy
   const db = await setup();
   try {
     async function submit(title, message) {
-      await db.query(
-        "select public.submit_gemini_report($1, $2, $3)",
-        [tool.id, title, message],
-      );
+      await db.query("select public.submit_gemini_report($1, $2, $3)", [
+        tool.id,
+        title,
+        message,
+      ]);
     }
     await asAnon(db);
     await assert.rejects(submit("x", "y".repeat(301)), /INVALID_MESSAGE/);
@@ -199,10 +211,16 @@ test("reports: anonymous intake, validation, pruning, daily cap, PIN inbox", asy
     assert.equal(inbox.reports.length, 20);
     const first = inbox.reports[0];
     await assert.rejects(
-      db.query("select public.delete_gemini_report($1, $2)", ["9999", first.id]),
+      db.query("select public.delete_gemini_report($1, $2)", [
+        "9999",
+        first.id,
+      ]),
       /INVALID_PIN/,
     );
-    await db.query("select public.delete_gemini_report($1, $2)", [PIN, first.id]);
+    await db.query("select public.delete_gemini_report($1, $2)", [
+      PIN,
+      first.id,
+    ]);
     const after = (
       await db.query("select public.get_gemini_reports($1) as data", [PIN])
     ).rows[0].data;
