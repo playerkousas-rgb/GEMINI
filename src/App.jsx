@@ -942,10 +942,7 @@ export default function App({
               <div className="animate-fadeInUp">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-white shadow-sm text-[11px] font-medium mb-5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#2E7D32] animate-pulse" />
-                  {"教學、創作、輔導 · 一個入口"}
-                  <span className="px-1.5 py-0.5 rounded-full bg-[#D6F264] text-[#111] text-[10px] ml-1">
-                    {"GEMINI TOOLS"}
-                  </span>
+                  {"Gemini 輔助工具"}
                 </div>
                 <h2 className="display text-[36px] sm:text-[52px] font-[800] tracking-[-0.04em] leading-[0.88]">
                   <span
@@ -954,28 +951,16 @@ export default function App({
                       animationDelay: "0.05s",
                     }}
                   >
-                    {"將你嘅"}
-                  </span>
-                  <br />
-                  <span
-                    className="inline-block animate-fadeInUp relative"
-                    style={{
-                      animationDelay: "0.12s",
-                    }}
-                  >
-                    {"Gemini Canvas"}
-                    <span className="absolute -top-2 -right-6 text-[16px] animate-float hidden sm:block">
-                      {"✨"}
-                    </span>
+                    {"教學創作"}
                   </span>
                   <br />
                   <span
                     className="inline-block animate-fadeInUp bg-gradient-to-r from-[#141413] via-[#3A5A24] to-[#7AAE3A] bg-clip-text text-transparent"
                     style={{
-                      animationDelay: "0.19s",
+                      animationDelay: "0.12s",
                     }}
                   >
-                    {"工具一格格收好"}
+                    {"攝影工具"}
                   </span>
                 </h2>
                 <p
@@ -1135,8 +1120,8 @@ export default function App({
                       {w.desc}
                     </p>
                   ) : null}
-                  <div className="mt-auto pt-3.5 flex items-center justify-between relative z-[1]">
-                    {mode === "cloud" ? (
+                  <div className="mt-auto pt-3.5 relative z-[1]">
+                    {mode === "cloud" && (
                       <span
                         className="report-link"
                         role="button"
@@ -1156,15 +1141,7 @@ export default function App({
                       >
                         回報
                       </span>
-                    ) : (
-                      <span />
                     )}
-                    <span className="text-[12px] font-semibold inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141413] text-white shadow-md group-hover:shadow-lg transition-all">
-                      {"開啟 "}
-                      <span className="text-[13px] group-hover:translate-x-0.5 transition-transform">
-                        {"→"}
-                      </span>
-                    </span>
                   </div>
                   <div className="absolute left-5 right-5 bottom-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D6F264]/0 to-transparent group-hover:via-[#D6F264]/60 transition-all duration-700" />
                 </a>
@@ -1199,7 +1176,7 @@ export default function App({
                 </button>
               </div>
             )}
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="glass-tile p-6 !min-h-0">
                 <div className="w-8 h-8 rounded-[10px] bg-[#141413] text-white grid place-items-center text-[12px] font-bold mb-4">
                   {"01"}
@@ -1225,20 +1202,6 @@ export default function App({
                     "撳磚仔會直接開去 Gemini，唔使安裝、唔使記連結，開完即刻用。"
                   }
                 </p>
-              </div>
-              <div className="relative overflow-hidden rounded-[20px] bg-[#141413] border border-[#1E1E1E] p-6 text-white shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-                <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-[#D6F264]/20 blur-[24px]" />
-                <div className="text-[12px] font-bold tracking-wide opacity-60">
-                  {"03 · 登入 Google 帳號"}
-                </div>
-                <p className="text-[13px] mt-3 leading-[1.7]">
-                  {
-                    "部分工具需要登入 Gemini 先發揮全部功能。連結能否開啟，由該連結本身嘅 Gemini 分享設定決定。"
-                  }
-                </p>
-                <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-white/10 border border-white/10">
-                  {"● 全部工具即開即用"}
-                </div>
               </div>
             </div>
           </main>
