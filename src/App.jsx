@@ -1176,34 +1176,6 @@ export default function App({
                 </button>
               </div>
             )}
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="glass-tile p-6 !min-h-0">
-                <div className="w-8 h-8 rounded-[10px] bg-[#141413] text-white grid place-items-center text-[12px] font-bold mb-4">
-                  {"01"}
-                </div>
-                <div className="text-[13px] font-bold tracking-tight">
-                  {"揀一個工具"}
-                </div>
-                <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6]">
-                  {
-                    "教學、創作、輔導工具都集中喺呢度，用搜尋或分類揀個你需要嘅。"
-                  }
-                </p>
-              </div>
-              <div className="glass-tile p-6 !min-h-0">
-                <div className="w-8 h-8 rounded-[10px] bg-white border border-white shadow-sm grid place-items-center text-[12px] font-bold mb-4">
-                  {"02"}
-                </div>
-                <div className="text-[13px] font-bold tracking-tight">
-                  {"一按就開啟"}
-                </div>
-                <p className="text-[13px] text-[var(--text-2)] mt-2 leading-[1.6]">
-                  {
-                    "撳磚仔會直接開去 Gemini，唔使安裝、唔使記連結，開完即刻用。"
-                  }
-                </p>
-              </div>
-            </div>
           </main>
         )}
         <footer className="mt-auto border-t border-white/60 bg-white/40 backdrop-blur-xl">
