@@ -74,7 +74,7 @@ export default function InsightsPanel({
         </div>
         <div>
           <span className="insights-num">{stats?.grand_total ?? "—"}</span>
-          <span className="insights-label">累積點擊</span>
+          <span className="insights-label">近一年點擊</span>
         </div>
         <div>
           <span className="insights-num">{reports?.total ?? "—"}</span>
