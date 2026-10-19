@@ -2,7 +2,7 @@
 
 **一個統一的 Gemini Share Link 入口。** 使用者在首頁開啟工具；管理員在後台（EDIT）填寫名稱、介紹及分享網址，儲存後就產生方塊，不需要上載 Canvas HTML、不需要手動改 JSON，也不需要每次重新部署。
 
-**公開頁只放公開內容：** 磚仔上唔會顯示 Share Link 文字，介紹文字預設唔會顯示（每個 CANVAS 有「公開顯示介紹」開關，後台先勾先得），頁尾冇 GitHub Repo 連結。管理入口保持不起眼設計（`/edit` 或頁尾 ©）。
+**公開頁只放公開內容：** 磚仔上唔會顯示 Share Link 文字，頁尾冇 GitHub Repo 連結；介紹文字預設**公開顯示**（每個 CANVAS 有「公開顯示介紹」開關，後台可以逐個收埋，收埋後只限後台睇到）。管理入口保持不起眼設計（`/edit` 或頁尾 ©）。
 
 保留原稿的米白／綠色、玻璃質感及方塊版面。使用 React + Vite，Vercel 部署；已連接 Supabase（與 APP STORE 共用同一專案，只使用 `gemini_hub_*` 表），提供管理密碼、點擊統計及訪客回報系統。
 
@@ -57,7 +57,7 @@ npm run dev
 
 - 保留原始 ID、名稱、介紹及完整 Share Link（包括大小寫）；原站未設圖示，這裡補上 Emoji。
 - 配合入口既有分類，AI 對話助手歸「工具」，其餘歸「創作」。可在後台修改。
-- 呢 6 條介紹係內部備註，`showDesc` 預設 `false`：公開頁唔會顯示介紹文字，只喺後台見到。想公開發表，喺後台改好文字後先勾「公開顯示介紹」。
+- 呢 6 條介紹會顯示喺公開頁（`showDesc: true`）。想收埋某條介紹，喺後台取消該項嘅「公開顯示介紹」就得。
 - 本機模式首次載入會一次性補入缺少的工具；按 ID／完整連結去重，不覆蓋原有試填內容、編輯及排序。
 - 匯入標記與草稿一同保存。之後自行刪除的工具不會因重新整理而復活。
 - 這是一次性搬入，不會持續同步，也沒有寫入或修改 WEBSITE 的資料庫。
@@ -74,7 +74,7 @@ npm run dev
    - 管理（需正確 PIN）：`save_gemini_catalog`、`get_gemini_stats`、`get_gemini_reports`、`delete_gemini_report`。
    - 兩份腳本均可重跑，不會清空原有資料。
 3. **新增**：在 Supabase SQL Editor 執行 `migrations/003_gemini_hub_retention.sql`，啟用每日自動瘦身（點擊保留 365 日、回報保留 90 日）。此 migration 可重跑；無需額外設定 Vercel 排程或 serverless function。
-4. **新增**：在 Supabase SQL Editor 執行 `migrations/004_gemini_show_desc.sql`，令雲端儲存接受每個工具的 `showDesc`（公開顯示介紹）布林值；舊記錄沒有該欄位時視作 `false`（介紹唔會顯示）。此 migration 只重建 `save_gemini_catalog`，可重跑、唔會清資料；舊清單要喺後台按一次儲存先會寫入該欄位。
+4. **新增**：在 Supabase SQL Editor 執行 `migrations/004_gemini_show_desc.sql`，令雲端儲存接受每個工具的 `showDesc`（公開顯示介紹）布林值；舊記錄沒有該欄位時視作 `true`（介紹照樣公開顯示）。此 migration 只重建 `save_gemini_catalog`，可重跑、唔會清資料；舊清單要喺後台按一次儲存先會寫入該欄位（唔執行 migration 時，「收埋介紹」嘅改動喺雲端會記唔住）。
 5. Vercel 環境變數（已設定，只放公開值）：
 
    | 名稱 | 內容 |

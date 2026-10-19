@@ -58,7 +58,7 @@ export function validateApps(value) {
       fail("showDesc 必須為布林值");
     return {
       visible: app.visible ?? true,
-      showDesc: app.showDesc ?? false,
+      showDesc: app.showDesc ?? true,
       ...Object.fromEntries(
         ["id", "title", "emoji", "desc", "url", "category"].map((key) => [
           key,

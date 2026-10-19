@@ -2,10 +2,10 @@
 -- Safe to re-run. Only replaces public.save_gemini_catalog; nothing else
 -- (click stats, reports, PIN, retention) is touched.
 --
--- Why: the description is an admin note by default. Visitors only see the
--- description text when the admin explicitly opts a tool in (showDesc = true).
--- Old saved items without the flag are normalized to false on the next save,
--- i.e. existing descriptions stop being rendered publicly without data loss.
+-- Why: the description is PUBLIC by default (it is meant for visitors).
+-- The admin can hide a specific tool's description (showDesc = false), in
+-- which case it is only visible in the back office. Old saved items without
+-- the flag are treated as public (true) on the next save.
 
 drop function if exists public.save_gemini_catalog(jsonb, integer, text);
 create or replace function public.save_gemini_catalog(p_apps jsonb, p_revision integer, p_pin text)
@@ -60,7 +60,7 @@ begin
       'id', item->>'id', 'title', item->>'title', 'desc', item->>'desc',
       'url', url, 'emoji', item->>'emoji', 'category', item->>'category',
       'visible', coalesce(item->'visible', 'true'::jsonb),
-      'showDesc', coalesce(item->'showDesc', 'false'::jsonb)
+      'showDesc', coalesce(item->'showDesc', 'true'::jsonb)
     ));
   end loop;
   -- Atomic compare-and-swap: do not overwrite another session's newer changes.

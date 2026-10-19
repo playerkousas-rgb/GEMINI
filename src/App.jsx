@@ -71,7 +71,7 @@ export default function App({
       emoji: "\uD83D\uDEE0️",
       category: "工具",
       visible: true,
-      showDesc: false,
+      showDesc: true,
     }),
     editorRef = React.useRef(null),
     searchRef = React.useRef(null),
@@ -203,7 +203,7 @@ export default function App({
           emoji: "🛠️",
           category: "工具",
           visible: true,
-          showDesc: false,
+          showDesc: true,
         });
         setQuery("");
         setCategory("全部");
@@ -301,7 +301,7 @@ export default function App({
         emoji: "🛠️",
         category: "工具",
         visible: true,
-        showDesc: false,
+        showDesc: true,
       });
       setShowExport(false);
       setShowImport(false);
@@ -764,7 +764,7 @@ export default function App({
                               emoji: "\uD83D\uDEE0️",
                               category: "工具",
                               visible: true,
-                              showDesc: false,
+                              showDesc: true,
                             }));
                         }}
                         className="btn-press h-[46px] px-5 rounded-[14px] bg-white border border-[var(--border-soft)] text-[14px] font-medium"
@@ -796,9 +796,11 @@ export default function App({
                       </p>
                     ) : (
                       <p className="text-[12px] text-[var(--text-3)] mt-2 leading-[1.6]">
-                        {form.title
-                          ? "訪客只會見到名稱（介紹未公開）"
-                          : "預覽會跟隨表單更新"}
+                        {form.desc
+                          ? "介紹已收埋，訪客只會見到名稱"
+                          : form.title
+                            ? "介紹未填，訪客只會見到名稱"
+                            : "預覽會跟隨表單更新"}
                       </p>
                     )}
                     <div className="mt-4 flex items-center gap-2">

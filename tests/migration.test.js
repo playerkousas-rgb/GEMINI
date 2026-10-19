@@ -90,15 +90,17 @@ test("PIN gate replaces auth whitelist: hidden records, validation, conflicts", 
     const publicView = await read(null);
     assert.deepEqual(publicView.apps, [tool]);
     assert.equal(publicView.can_edit, false);
-    // showDesc round-trips; legacy items without the flag default to false.
+    // showDesc round-trips; legacy items without the flag default to public.
     await save([{ ...tool, showDesc: true }, hidden], 1, PIN);
     assert.equal((await read(PIN)).apps[0].showDesc, true);
     const legacy = { ...tool };
     delete legacy.showDesc;
     await save([hidden, legacy], 2, PIN);
     assert.equal((await read(PIN)).apps[0].id, "secret");
-    assert.equal((await read(PIN)).apps[1].showDesc, false);
-    await save([], 3, PIN);
+    assert.equal((await read(PIN)).apps[1].showDesc, true);
+    await save([{ ...tool, showDesc: false }], 3, PIN);
+    assert.equal((await read(PIN)).apps[0].showDesc, false);
+    await save([], 4, PIN);
     assert.deepEqual((await read(PIN)).apps, []);
   } finally {
     await db.close();

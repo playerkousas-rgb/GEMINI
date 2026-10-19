@@ -54,10 +54,10 @@ test("rejects incomplete entries, duplicate IDs and unknown categories", () => {
     assert.throws(() => validateApps(data));
 });
 
-test("showDesc defaults to false and keeps explicit values", () => {
+test("showDesc defaults to true and keeps explicit values", () => {
   const legacy = { ...app };
   delete legacy.showDesc;
-  assert.equal(validateApps([legacy])[0].showDesc, false);
+  assert.equal(validateApps([legacy])[0].showDesc, true);
+  assert.equal(validateApps([{ ...app, showDesc: false }])[0].showDesc, false);
   assert.equal(validateApps([{ ...app, showDesc: true }])[0].showDesc, true);
-  assert.equal(validateApps([app])[0].showDesc, false);
 });
