@@ -66,15 +66,15 @@ npm run dev
 
 ## Supabase 接駁（已完成）
 
-已與 APP STORE 共用同一 Supabase 專案（`SCOUTAPPSTORE`）；本程式只使用下列 `gemini_hub_*` 表及 RPC，不會改 WEBSITE 的 `apps`、`categories`、`pages`、`site_visits`、`submissions`。
+已與 APP STORE 共用同一 Supabase 專案（`SCOUTAPPSTORE`，ref `visqyeskdauipodudpxz`）；本程式只使用下列 `gemini_hub_*` 表及 RPC，不會改 WEBSITE 的 `apps`、`categories`、`pages`、`site_visits`、`submissions`。
 
 1. `migrations/001_gemini_hub.sql`（已執行）：建立 `gemini_hub_state`（版本化清單＋PIN）、RLS 及讀寫 RPC。
 2. `migrations/002_gemini_pin_report_stats.sql`（已執行）：改用共享 PIN 管理制（取代 Auth 白名單，已移除 `gemini_hub_admins`），加建每日點擊合計表 `gemini_hub_clicks`、回報表 `gemini_hub_reports` 及相關 RPC。
    - 訪客：`get_gemini_catalog`（只看公開工具）、`record_gemini_click`（點擊＋1）、`submit_gemini_report`（回報）。
    - 管理（需正確 PIN）：`save_gemini_catalog`、`get_gemini_stats`、`get_gemini_reports`、`delete_gemini_report`。
    - 兩份腳本均可重跑，不會清空原有資料。
-3. **新增**：在 Supabase SQL Editor 執行 `migrations/003_gemini_hub_retention.sql`，啟用每日自動瘦身（點擊保留 365 日、回報保留 90 日）。此 migration 可重跑；無需額外設定 Vercel 排程或 serverless function。
-4. **新增**：在 Supabase SQL Editor 執行 `migrations/004_gemini_show_desc.sql`，令雲端儲存接受每個工具的 `showDesc`（公開顯示介紹）布林值；舊記錄沒有該欄位時視作 `true`（介紹照樣公開顯示）。此 migration 只重建 `save_gemini_catalog`，可重跑、唔會清資料；舊清單要喺後台按一次儲存先會寫入該欄位（唔執行 migration 時，「收埋介紹」嘅改動喺雲端會記唔住）。
+3. `migrations/003_gemini_hub_retention.sql`（已於 2026-10-19 執行）：啟用每日自動瘦身（點擊保留 365 日、回報保留 90 日），新增 `gemini_hub_maintenance` 每日原子清理閘。可重跑；無需額外設定 Vercel 排程或 serverless function。
+4. `migrations/004_gemini_show_desc.sql`（已於 2026-10-19 執行）：令雲端儲存接受每個工具的 `showDesc`（公開顯示介紹）布林值；舊記錄沒有該欄位時視作 `true`（介紹照樣公開顯示）。此 migration 只重建 `save_gemini_catalog`，可重跑、唔會清資料。原有 6 筆工具已一次性補上 `showDesc: true`（雲端清單 revision 現為 2）。
 5. Vercel 環境變數（已設定，只放公開值）：
 
    | 名稱 | 內容 |
@@ -109,9 +109,11 @@ SQL 已在隔離 PostgreSQL（PGlite）測試，前端雲端流程亦以模擬 A
 - 兩個管理分頁同時編輯，後儲存的舊版本必須出現衝突提示。
 - 網絡失敗不能顯示已發布；恢復網絡可重試，登出後管理表單消失。
 
+**資料庫層遠端驗收（2026-10-19 已於真實 Supabase 專案完成）**：4 份 migration 均已在 `SCOUTAPPSTORE` 執行；4 張 `gemini_hub_*` 表全部啟用 RLS 且冇 table policy，`anon`／`authenticated` 對表零權限；`record_gemini_click`、`submit_gemini_report`、`get_gemini_catalog`、`save_gemini_catalog`、`get_gemini_stats` 等只經 RPC 開放，`gemini_hub_is_admin`、`gemini_hub_prune_old_data` 不可由前端執行。實測：訪客讀取只返回 6 個公開工具（`can_edit: false`）、錯誤 PIN 回 `42501 INVALID_PIN`、正確 PIN 儲存成功並補回 `showDesc`、點擊＋1、回報寫入、每日清理閘推進。測試資料已刪除。瀏覽器端的無痕訪客／多分頁衝突／網絡失敗情境仍需人手驗收。
+
 ## GitHub → Vercel
 
-- 本工作分支固定為 `arena/68d92208-gemini`；合併 PR 到 `main` 後 Vercel 自動部署生產環境。
+- Arena 工作分支合併 PR 到 `main` 後，Vercel 自動部署生產環境。
 - Vercel 匯入 `playerkousas-rgb/GEMINI`，Framework 選 **Vite**，Root Directory 為根目錄，Build Command `npm run build`，Output Directory `dist`。
 - `vercel.json` 將 `/edit` 和 `/edit/` 對應首頁，並為 hashed assets 加長效快取、HTML 設不快取（瘦身）。沒有攔截其他網址的全站 catch-all rewrite。
 
