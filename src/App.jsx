@@ -1155,6 +1155,7 @@ export default function App({
                           }
                         }}
                       >
+                        <span aria-hidden="true">📝</span>
                         回報
                       </span>
                     )}

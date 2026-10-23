@@ -503,19 +503,36 @@ textarea:focus-visible {
   opacity: 0.75;
 }
 
-/* Quiet per-tool report link. */
+/* Per-tool report button on each tile. */
 .report-link {
-  background: none;
-  border: none;
-  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
   font-size: 11px;
-  color: var(--text-3);
+  font-weight: 600;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
   cursor: pointer;
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  transition:
+    color 0.25s,
+    background 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s,
+    transform 0.25s;
 }
 .report-link:hover {
-  color: var(--text-2);
+  color: #141413;
+  background: #fff;
+  border-color: rgba(20, 20, 19, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+.report-link:active {
+  transform: translateY(0);
 }
 
 /* Admin insights: click stats + report inbox. */
