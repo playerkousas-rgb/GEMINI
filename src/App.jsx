@@ -1068,7 +1068,21 @@ export default function App({
                 {filteredApps.length}
                 {" 格"}
               </span>
-
+              {mode === "cloud" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReporting({
+                      id: "__wish__",
+                      title: "💡 許願 · 新工具建議",
+                      wish: true,
+                    })
+                  }
+                  className="btn-press ml-auto px-3 py-1.5 rounded-full bg-[#D6F264]/70 border border-[#C2E8A0] text-[11px] font-semibold text-[#2E4A14] shadow-sm hover:bg-[#D6F264] hover:shadow-md transition-all duration-300"
+                >
+                  {"💡 許願 · 想要新 CANVAS？"}
+                </button>
+              )}
             </div>
             <div
               className="grid gap-4 sm:gap-5"
@@ -1141,6 +1155,7 @@ export default function App({
                           }
                         }}
                       >
+                        <span aria-hidden="true">📝</span>
                         回報
                       </span>
                     )}
@@ -1209,6 +1224,7 @@ export default function App({
       {reporting && (
         <ReportDialog
           tool={reporting}
+          wish={Boolean(reporting.wish)}
           onSubmit={onReport}
           onClose={() => setReporting(null)}
         />
