@@ -75,7 +75,8 @@ npm run dev
    - 兩份腳本均可重跑，不會清空原有資料。
 3. `migrations/003_gemini_hub_retention.sql`（已於 2026-10-19 執行）：啟用每日自動瘦身（點擊保留 365 日、回報保留 90 日），新增 `gemini_hub_maintenance` 每日原子清理閘。可重跑；無需額外設定 Vercel 排程或 serverless function。
 4. `migrations/004_gemini_show_desc.sql`（已於 2026-10-19 執行）：令雲端儲存接受每個工具的 `showDesc`（公開顯示介紹）布林值；舊記錄沒有該欄位時視作 `true`（介紹照樣公開顯示）。此 migration 只重建 `save_gemini_catalog`，可重跑、唔會清資料。原有 6 筆工具已一次性補上 `showDesc: true`（雲端清單 revision 現為 2）。
-5. Vercel 環境變數（已設定，只放公開值）：
+5. `migrations/005_gemini_categories.sql`（已於 2026-10-23 執行）：把雲端分類更新為「相片 / 設計 / 輔助 / 教學 / 工具」，現有清單即場對應（創作→設計、輔導→輔助、遊戲→工具），並重建 `save_gemini_catalog` 改用新分類白名單。只改 `gemini_hub_state` 及該 RPC，不動統計、回報、PIN、保留期。可重跑。執行後雲端清單 revision 為 15，9 筆工具分類全部為新值；`save_gemini_catalog` 已改為接受新分類（已用正確 PIN 在交易內來回測試後回滾，資料不變）。未有 005 之前，舊白名單會以 `INVALID_TOOL` 拒絕「相片」等新分類，所以新版前端上線前必須先執行此 migration。
+6. Vercel 環境變數（已設定，只放公開值）：
 
    | 名稱 | 內容 |
    |---|---|
@@ -83,8 +84,8 @@ npm run dev
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | publishable key（`sb_publishable_…`），或舊版 **anon** key |
 
    本機則複製 `.env.example` 為 `.env.local`，填入同樣兩項，重新啟動開發伺服器。
-6. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入後台（新增表單＋CANVAS 清單）、統計及回報收件箱。
-7. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
+7. 開 `/edit`（或撳頁尾 © Scout System），輸入管理密碼即進入後台（新增表單＋CANVAS 清單）、統計及回報收件箱。
+8. 如已試填本機工具，先在本機模式下載 JSON 備份，再於雲端模式匯入。匯入會取代雲端現有清單，必須確認，建議先備份。
 
 ### 權限及儲存方式
 
@@ -109,7 +110,7 @@ SQL 已在隔離 PostgreSQL（PGlite）測試，前端雲端流程亦以模擬 A
 - 兩個管理分頁同時編輯，後儲存的舊版本必須出現衝突提示。
 - 網絡失敗不能顯示已發布；恢復網絡可重試，登出後管理表單消失。
 
-**資料庫層遠端驗收（2026-10-19 已於真實 Supabase 專案完成）**：4 份 migration 均已在 `SCOUTAPPSTORE` 執行；4 張 `gemini_hub_*` 表全部啟用 RLS 且冇 table policy，`anon`／`authenticated` 對表零權限；`record_gemini_click`、`submit_gemini_report`、`get_gemini_catalog`、`save_gemini_catalog`、`get_gemini_stats` 等只經 RPC 開放，`gemini_hub_is_admin`、`gemini_hub_prune_old_data` 不可由前端執行。實測：訪客讀取只返回 6 個公開工具（`can_edit: false`）、錯誤 PIN 回 `42501 INVALID_PIN`、正確 PIN 儲存成功並補回 `showDesc`、點擊＋1、回報寫入、每日清理閘推進。測試資料已刪除。瀏覽器端的無痕訪客／多分頁衝突／網絡失敗情境仍需人手驗收。
+**資料庫層遠端驗收（2026-10-19 已於真實 Supabase 專案完成；005 於 2026-10-23 補做）**：5 份 migration 均已在 `SCOUTAPPSTORE` 執行；4 張 `gemini_hub_*` 表全部啟用 RLS 且冇 table policy，`anon`／`authenticated` 對表零權限（2026-10-23 重測：`anon` 直接 `update` 仍回 `42501 permission denied`）；`record_gemini_click`、`submit_gemini_report`、`get_gemini_catalog`、`save_gemini_catalog`、`get_gemini_stats` 等只經 RPC 開放，`gemini_hub_is_admin`、`gemini_hub_prune_old_data` 不可由前端執行。實測：訪客讀取只返回公開工具（`can_edit: false`，2026-10-23 為 9 個）、錯誤 PIN 回 `42501 INVALID_PIN`、正確 PIN 儲存成功並補回 `showDesc`、點擊＋1、回報寫入、每日清理閘推進。測試資料已刪除。瀏覽器端的無痕訪客／多分頁衝突／網絡失敗情境仍需人手驗收。
 
 ## GitHub → Vercel
 
@@ -138,6 +139,7 @@ migrations/001_gemini_hub.sql     清單資料表、RLS、讀寫 RPC
 migrations/002_gemini_pin_report_stats.sql  PIN 制、點擊統計、回報系統
 migrations/003_gemini_hub_retention.sql    每日瘦身及 365／90 日資料保留
 migrations/004_gemini_show_desc.sql        每個工具的 showDesc（公開顯示介紹）欄位
+migrations/005_gemini_categories.sql       新分類（相片／設計／輔助／教學／工具）及舊分類對應
 .env.example                     公開環境設定範本，不含祕密
 tests/                           驗證、儲存及資料庫權限測試
 vercel.json                      Vercel 部署與 /edit 路由
