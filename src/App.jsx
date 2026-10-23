@@ -29,7 +29,7 @@ const EMOJIS = [
     "\uD83D\uDD25",
     "\uD83C\uDF80",
   ],
-  CATEGORIES = ["全部", "創作", "教學", "輔導", "工具", "遊戲"];
+  CATEGORIES = ["全部", "相片", "設計", "輔助", "教學", "工具"];
 export default function App({
   apps,
   canEdit,
@@ -975,7 +975,7 @@ export default function App({
                     {"一格一個工具，一按就開啟。"}
                   </b>
                   {
-                    "教學、創作、輔導工具集中一處，揀完直接入 Gemini 用，唔使記任何連結。"
+                    "相片、設計、輔助、教學工具集中一處，揀完直接入 Gemini 用，唔使記任何連結。"
                   }
                 </p>
                 <div

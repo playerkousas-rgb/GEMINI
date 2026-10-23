@@ -1,4 +1,11 @@
-export const CATEGORIES = ["創作", "教學", "輔導", "工具", "遊戲"];
+export const CATEGORIES = ["相片", "設計", "輔助", "教學", "工具"];
+
+// 舊分類自動對應新分類，確保載入舊資料時不會壞page。
+export const LEGACY_CATEGORY_MAP = {
+  創作: "設計",
+  輔導: "輔助",
+  遊戲: "工具",
+};
 
 export function isSafeToolUrl(value) {
   if (
@@ -41,7 +48,8 @@ export function validateApps(value) {
     if (!app.id.trim() || ids.has(app.id)) fail("id 必須非空且唯一");
     ids.add(app.id);
     if (!app.title.trim() || !app.emoji.trim()) fail("請填寫標題及圖示");
-    if (!CATEGORIES.includes(app.category)) fail("分類不正確");
+    const category = LEGACY_CATEGORY_MAP[app.category] ?? app.category;
+    if (!CATEGORIES.includes(category)) fail("分類不正確");
     if (!isSafeToolUrl(app.url)) fail("只接受 https:// 網址或 /tools/ 路徑");
     for (const [field, limit] of Object.entries({
       id: 64,
@@ -60,11 +68,9 @@ export function validateApps(value) {
       visible: app.visible ?? true,
       showDesc: app.showDesc ?? true,
       ...Object.fromEntries(
-        ["id", "title", "emoji", "desc", "url", "category"].map((key) => [
-          key,
-          app[key],
-        ]),
+        ["id", "title", "emoji", "desc", "url"].map((key) => [key, app[key]]),
       ),
+      category,
     };
   });
 }

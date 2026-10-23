@@ -8,7 +8,7 @@ export async function createStore() {
   if (!url && !key)
     return createLocalStore(undefined, {
       seedApps: websiteTools,
-      seedVersion: "website-gemini-2026-10-18",
+      seedVersion: "website-gemini-2026-10-23",
     });
   if (!url || !key)
     throw new Error("Supabase 設定不完整，請同時設定 URL 和 publishable key。");
